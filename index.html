@@ -4,29 +4,17 @@
     <meta charset="UTF-8">
     <title>Iron_War.io - Osman</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #1a1a1a; font-family: sans-serif; }
-        canvas { display: block; }
-        #ui { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; }
-        #menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                background: rgba(0,0,0,0.8); padding: 20px; color: white; text-align: center; border-radius: 10px; }
-        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #444; color: white; border: none; }
-        button:hover { background: #666; }
+        body { margin: 0; overflow: hidden; background: #1a1a1a; color: white; font-family: sans-serif; }
+        canvas { display: block; background: #222; }
+        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; }
     </style>
 </head>
 <body>
     <div id="ui">
         <div>Can: <span id="lives">3</span></div>
         <div>Skor: <span id="score">0</span></div>
-        <div id="howTo">Nasıl Oynanır: WASD - Hareket | Boşluk - Ateş | B - Özel Güç</div>
+        <div>Nasıl Oynanır: Boşluk: 4-Yön Ateş | B: Özel Güç</div>
     </div>
-
-    <div id="menu">
-        <h2>Iron_War.io</h2>
-        <p>Takım Seç (Sadece Bayrak Kapmaca)</p>
-        <button onclick="selectTeam('Kırmızı')">Kırmızı Takım</button>
-        <button onclick="selectTeam('Mavi')">Mavi Takım</button>
-    </div>
-
     <canvas id="gameCanvas"></canvas>
 
     <script>
@@ -35,67 +23,16 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // Osman'ın Özel Ayarları
-        let player = { x: 100, y: 100, lives: 3, score: 0, speed: 5, team: null };
-        let zombies = [];
-        let bullets = [];
-        let zombieSpeed = 0.5; // Zombilerin hızı düşürüldü
-
-        // Zombi Oluşturma (Yavaş hareket ederler)
-        function spawnZombie() {
-            zombies.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                hp: 1
-            });
-        }
-        setInterval(spawnZombie, 3000);
-
-        // Ateş Sistemi (Boşluk Tuşu)
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') {
-                // 4 yöne ateş
-                [0, 90, 180, 270].forEach(angle => {
-                    bullets.push({
-                        x: player.x, y: player.y,
-                        vx: Math.cos(angle * Math.PI / 180) * 10,
-                        vy: Math.sin(angle * Math.PI / 180) * 10
-                    });
-                });
-            }
-            if (e.key === 'b' || e.key === 'B') {
-                console.log("Özel güç kullanıldı!");
-                // Buraya B tuşu özel gücü gelecek
-            }
-        });
-
-        function selectTeam(t) {
-            player.team = t;
-            document.getElementById('menu').style.display = 'none';
-        }
-
-        function gameLoop() {
+        // Osman'ın Özel Ayarları: Zombi hızı düşük
+        let zombieSpeed = 0.5; 
+        
+        function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Oyuncuyu çiz
-            ctx.fillStyle = player.team === 'Kırmızı' ? 'red' : 'blue';
-            ctx.fillRect(player.x, player.y, 30, 30);
-
-            // Zombileri hareket ettir ve çiz
-            zombies.forEach((z, index) => {
-                let dx = player.x - z.x;
-                let dy = player.y - z.y;
-                let dist = Math.sqrt(dx*dx + dy*dy);
-                z.x += (dx/dist) * zombieSpeed;
-                z.y += (dy/dist) * zombieSpeed;
-
-                ctx.fillStyle = 'green';
-                ctx.fillRect(z.x, z.y, 20, 20);
-            });
-
-            requestAnimationFrame(gameLoop);
+            ctx.fillStyle = "cyan"; // Senin karakterin
+            ctx.fillRect(canvas.width/2, canvas.height/2, 30, 30);
+            requestAnimationFrame(draw);
         }
-        gameLoop();
+        draw();
     </script>
 </body>
 </html>
