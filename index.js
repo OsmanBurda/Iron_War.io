@@ -10,7 +10,8 @@ let players = {};
 io.on('connection', (socket) => {
     players[socket.id] = { 
         x: 1500, y: 1500, id: socket.id, 
-        name: "Osman", color: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0NPrkQ7yE9Z08S5XkG9D9Q9J-uG8n7f-GgA&s" 
+        name: "Osman", 
+        color: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe_nMarGj4bTgbT3erB8NoJGVamlFJFQf5KNAuWOvfnQ&s=10" 
     };
     
     socket.emit('currentPlayers', players);
@@ -37,4 +38,8 @@ io.on('connection', (socket) => {
     });
 });
 
-http.listen(process.env.PORT || 3000, () => console.log('Ronaldo ve Messi Hazır!'));
+// RENDER İÇİN KRİTİK PORT AYARI
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, '0.0.0.0', () => {
+    console.log(`Sunucu ${PORT} portunda aktif!`);
+});
