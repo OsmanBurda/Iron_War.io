@@ -2,13 +2,13 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
-const path = require('path');
 
 app.use(express.static(__dirname));
 
 let players = {};
 
 io.on('connection', (socket) => {
+    // Yeni oyuncu bağlandığında varsayılan ayarlar
     players[socket.id] = { 
         x: 1500, y: 1500, id: socket.id, 
         name: "Osman", 
@@ -39,8 +39,8 @@ io.on('connection', (socket) => {
     });
 });
 
-// RENDER İÇİN ÖZEL PORT AYARI
+// Render için kritik: 0.0.0.0 üzerinden dinleme yapmalı
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, '0.0.0.0', () => {
-    console.log(`Sunucu ${PORT} portunda çalışıyor.`);
+    console.log(`Sunucu ${PORT} portunda hazir!`);
 });
