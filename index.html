@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron_War.io - Büyük Harita</title>
+    <title>Iron_War.io - Kamera Takibi</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; }
         canvas { display: block; }
@@ -10,7 +10,7 @@
     </style>
 </head>
 <body>
-<div id="ui">Can: <span id="livesText">3</span> | Konum: <span id="posText">0,0</span></div>
+<div id="ui">Can: <span id="livesText">3</span></div>
 <canvas id="game"></canvas>
 
 <script>
@@ -24,43 +24,33 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // HARİTA AYARLARI (Görüş açısından çok daha büyük)
     const WORLD = { width: 3000, height: 3000 };
-    const WALL_THICKNESS = 20;
+    const WALL = 25;
+    let player = { x: 1500, y: 1500, size: 30, speed: 7, lives: 3 };
+    let joystick = { active: false, bx: 0, by: 0, cx: 0, cy: 0 };
 
-    let player = { 
-        x: WORLD.width / 2, 
-        y: WORLD.height / 2, 
-        size: 30, 
-        color: '#00ff00', 
-        speed: 6, 
-        lives: 3 
-    };
-
-    let joystick = { active: false, baseX: 0, baseY: 0, currX: 0, currY: 0 };
-
-    // MOBİL KONTROLLER
     canvas.addEventListener('touchstart', e => {
         joystick.active = true;
-        joystick.baseX = e.touches[0].clientX;
-        joystick.baseY = e.touches[0].clientY;
-        joystick.currX = joystick.baseX;
-        joystick.currY = joystick.baseY;
+        joystick.bx = e.touches[0].clientX;
+        joystick.by = e.touches[0].clientY;
+        joystick.cx = joystick.bx;
+        joystick.cy = joystick.by;
     });
 
     canvas.addEventListener('touchmove', e => {
         if (!joystick.active) return;
-        joystick.currX = e.touches[0].clientX;
-        joystick.currY = e.touches[0].clientY;
+        joystick.cx = e.touches[0].clientX;
+        joystick.cy = e.touches[0].clientY;
         e.preventDefault();
     }, {passive: false});
 
     canvas.addEventListener('touchend', () => joystick.active = false);
 
-    function update() {
+    function loop() {
+        // Hareket Mantığı
         if (joystick.active) {
-            let dx = joystick.currX - joystick.baseX;
-            let dy = joystick.currY - joystick.baseY;
+            let dx = joystick.cx - joystick.bx;
+            let dy = joystick.cy - joystick.by;
             let dist = Math.sqrt(dx*dx + dy*dy);
             if (dist > 5) {
                 let angle = Math.atan2(dy, dx);
@@ -69,62 +59,57 @@
             }
         }
 
-        // KIRMIZI DUVAR ÇARPIŞMA KONTROLÜ
-        if (player.x < WALL_THICKNESS) player.x = WALL_THICKNESS;
-        if (player.y < WALL_THICKNESS) player.y = WALL_THICKNESS;
-        if (player.x > WORLD.width - WALL_THICKNESS) player.x = WORLD.width - WALL_THICKNESS;
-        if (player.y > WORLD.height - WALL_THICKNESS) player.y = WORLD.height - WALL_THICKNESS;
+        // Duvar Sınırları (Kırmızı Duvar İçin)
+        if (player.x < WALL) player.x = WALL;
+        if (player.y < WALL) player.y = WALL;
+        if (player.x > WORLD.width - WALL) player.x = WORLD.width - WALL;
+        if (player.y > WORLD.height - WALL) player.y = WORLD.height - WALL;
 
-        document.getElementById('posText').innerText = Math.round(player.x) + "," + Math.round(player.y);
-    }
+        // Çizim
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // KAMERA SİSTEMİ (Oyuncuyu ortalar)
+        // KAMERA SİSTEMİ: Dünyayı oyuncunun tersine kaydırır, oyuncu hep merkezde kalır
         ctx.save();
         ctx.translate(canvas.width/2 - player.x, canvas.height/2 - player.y);
 
-        // Zemin Çizimi
-        ctx.fillStyle = '#1a1a1a';
+        // Zemin ve Izgara
+        ctx.fillStyle = '#111';
         ctx.fillRect(0, 0, WORLD.width, WORLD.height);
-        
-        // Izgara (Haritayı büyük hissettirmek için)
-        ctx.strokeStyle = '#333';
-        for(let i=0; i<WORLD.width; i+=100) {
+        ctx.strokeStyle = '#222';
+        for(let i=0; i<=WORLD.width; i+=100) {
             ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, WORLD.height); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(WORLD.width, i); ctx.stroke();
         }
 
-        // KIRMIZI DUVARLAR
+        // Kırmızı Duvarlar
         ctx.fillStyle = 'red';
-        ctx.fillRect(0, 0, WORLD.width, WALL_THICKNESS); // Üst
-        ctx.fillRect(0, WORLD.height - WALL_THICKNESS, WORLD.width, WALL_THICKNESS); // Alt
-        ctx.fillRect(0, 0, WALL_THICKNESS, WORLD.height); // Sol
-        ctx.fillRect(WORLD.width - WALL_THICKNESS, 0, WALL_THICKNESS, WORLD.height); // Sağ
+        ctx.fillRect(0, 0, WORLD.width, WALL); // Üst
+        ctx.fillRect(0, WORLD.height - WALL, WORLD.width, WALL); // Alt
+        ctx.fillRect(0, 0, WALL, WORLD.height); // Sol
+        ctx.fillRect(WORLD.width - WALL, 0, WALL, WORLD.height); // Sağ
 
-        // OYUNCU
-        ctx.fillStyle = player.color;
+        // Oyuncu
+        ctx.fillStyle = 'lime';
         ctx.shadowBlur = 15; ctx.shadowColor = 'lime';
         ctx.fillRect(player.x - 15, player.y - 15, 30, 30);
         ctx.shadowBlur = 0;
 
         ctx.restore();
 
-        // JOYSTICK GÖRSELİ
+        // Joystick Görseli (Statik, kameradan etkilenmez)
         if (joystick.active) {
             ctx.beginPath();
-            ctx.arc(joystick.baseX, joystick.baseY, 50, 0, Math.PI*2);
+            ctx.arc(joystick.bx, joystick.by, 50, 0, Math.PI*2);
             ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.stroke();
             ctx.beginPath();
-            ctx.arc(joystick.currX, joystick.currY, 25, 0, Math.PI*2);
+            ctx.arc(joystick.cx, joystick.cy, 25, 0, Math.PI*2);
             ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.fill();
         }
 
-        update();
-        requestAnimationFrame(draw);
+        requestAnimationFrame(loop);
     }
-    draw();
+    loop();
 </script>
 </body>
 </html>
