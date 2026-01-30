@@ -1,18 +1,18 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron_War.io - Beyaz Tema</title>
+    <title>Iron_War.io - Beyaz</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #eee; touch-action: none; font-family: sans-serif; }
-        canvas { display: block; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #333; pointer-events: none; font-weight: bold; }
+        body { margin: 0; overflow: hidden; background: #ffffff; touch-action: none; font-family: sans-serif; }
+        canvas { display: block; background: #ffffff; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #000; pointer-events: none; z-index: 10; }
     </style>
 </head>
 <body>
-<div id="ui">Can: 3</div>
-<canvas id="game"></canvas>
-
+    <div id="ui">Can: 3</div>
+    <canvas id="game"></canvas>
 <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
@@ -25,10 +25,10 @@
     resize();
 
     const WORLD = { width: 3000, height: 3000 };
-    const WALL = 25;
-    const MINIMAP_SIZE = 150;
+    const WALL = 30;
+    const MINIMAP_SIZE = 140;
 
-    let player = { x: 1500, y: 1500, size: 30, speed: 7 };
+    let player = { x: 1500, y: 1500, speed: 7 };
     let joystick = { active: false, bx: 0, by: 0, cx: 0, cy: 0 };
 
     canvas.addEventListener('touchstart', e => {
@@ -63,43 +63,40 @@
         player.x = Math.max(WALL, Math.min(WORLD.width - WALL, player.x));
         player.y = Math.max(WALL, Math.min(WORLD.height - WALL, player.y));
 
-        // Ekranı temizle
-        ctx.fillStyle = '#f0f0f0';
+        ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.save();
         ctx.translate(canvas.width/2 - player.x, canvas.height/2 - player.y);
 
         // Beyaz Zemin
-        ctx.fillStyle = '#ffffff'; 
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, WORLD.width, WORLD.height);
         
-        // Hafif Gri Izgara
-        ctx.strokeStyle = '#e0e0e0';
-        ctx.lineWidth = 1;
+        // Izgara
+        ctx.strokeStyle = '#f0f0f0';
         for(let i=0; i<=WORLD.width; i+=150) {
             ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, WORLD.height); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(WORLD.width, i); ctx.stroke();
         }
 
-        // Kırmızı Sınır Duvarları
-        ctx.fillStyle = '#ff4d4d';
+        // Kırmızı Duvarlar
+        ctx.fillStyle = 'red';
         ctx.fillRect(0, 0, WORLD.width, WALL);
         ctx.fillRect(0, WORLD.height - WALL, WORLD.width, WALL);
         ctx.fillRect(0, 0, WALL, WORLD.height);
         ctx.fillRect(WORLD.width - WALL, 0, WALL, WORLD.height);
 
-        // Oyuncu (Beyazda en iyi mavi/mor veya yeşil görünür)
-        ctx.fillStyle = '#2ecc71'; // Canlı Yeşil
+        // Oyuncu
+        ctx.fillStyle = '#2ecc71';
         ctx.fillRect(player.x - 15, player.y - 15, 30, 30);
-
         ctx.restore();
 
-        // Mini Harita Tasarımı (Beyaza uygun)
+        // Mini Harita
         const mmX = canvas.width - MINIMAP_SIZE - 20;
         const mmY = 20;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.strokeStyle = '#ccc';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.strokeStyle = '#ddd';
         ctx.fillRect(mmX, mmY, MINIMAP_SIZE, MINIMAP_SIZE);
         ctx.strokeRect(mmX, mmY, MINIMAP_SIZE, MINIMAP_SIZE);
 
@@ -108,14 +105,9 @@
         ctx.fillStyle = '#2ecc71';
         ctx.beginPath(); ctx.arc(playerMMX, playerMMY, 4, 0, Math.PI * 2); ctx.fill();
 
-        // Joystick
         if (joystick.active) {
-            ctx.beginPath();
-            ctx.arc(joystick.bx, joystick.by, 50, 0, Math.PI*2);
-            ctx.strokeStyle = "rgba(0, 0, 0, 0.1)"; ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(joystick.cx, joystick.cy, 25, 0, Math.PI*2);
-            ctx.fillStyle = "rgba(0, 0, 0, 0.15)"; ctx.fill();
+            ctx.beginPath(); ctx.arc(joystick.bx, joystick.by, 50, 0, Math.PI*2);
+            ctx.strokeStyle = "rgba(0,0,0,0.1)"; ctx.stroke();
         }
 
         requestAnimationFrame(loop);
