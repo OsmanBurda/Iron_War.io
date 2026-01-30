@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron_War.io - El Clasico Fix</title>
+    <title>Iron_War.io - Kesin Çözüm</title>
     <style>
         body { margin: 0; overflow: hidden; background: #fff; touch-action: none; font-family: sans-serif; }
         canvas { display: block; z-index: 1; }
         
+        /* GİRİŞ MENÜSÜ */
         #menuOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: white; display: flex; align-items: center; justify-content: center; z-index: 9999;
@@ -46,8 +47,8 @@
             
             <div class="costume-container">
                 <div class="costume-btn selected" 
-                     style="background-image: url('https://i.imgur.com/8pA9K5X.png')" 
-                     data-url="https://i.imgur.com/8pA9K5X.png">
+                     style="background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe_nMarGj4bTgbT3erB8NoJGVamlFJFQf5KNAuWOvfnQ&s=10')" 
+                     data-url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe_nMarGj4bTgbT3erB8NoJGVamlFJFQf5KNAuWOvfnQ&s=10">
                      <span class="costume-label">Ronaldo</span>
                 </div>
                 <div class="costume-btn" 
@@ -62,7 +63,7 @@
     </div>
 
     <div id="joy-bg"><div id="joy-thumb"></div></div>
-    <div id="ui" style="position:absolute; top:10px; left:10px; z-index:50; font-weight:bold;">Can: 3</div>
+    <div id="ui" style="position:absolute; top:10px; left:10px; z-index:50; font-weight:bold; font-size:20px;">Can: 3</div>
     <canvas id="game"></canvas>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -73,7 +74,7 @@
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
     let myName = "Osman";
-    let myLink = "https://i.imgur.com/8pA9K5X.png"; 
+    let myLink = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe_nMarGj4bTgbT3erB8NoJGVamlFJFQf5KNAuWOvfnQ&s=10"; 
     let playing = false;
     let myHeroImg = new Image(); 
     let otherHeros = {}; 
@@ -139,7 +140,7 @@
             ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(3000,i); ctx.stroke();
         }
 
-        // DİĞERLERİ
+        // DİĞER OYUNCULARI ÇİZ
         Object.values(others).forEach(p => {
             if(!otherHeros[p.id] || otherHeros[p.id].url !== p.color) {
                 let img = new Image(); img.src = p.color;
@@ -149,13 +150,13 @@
             ctx.fillStyle = "black"; ctx.textAlign="center"; ctx.fillText(p.name, p.x, p.y-35);
         });
 
-        // KENDİN
+        // KENDİNİ ÇİZ
         if(myHeroImg.complete) ctx.drawImage(myHeroImg, pos.x-25, pos.y-25, 50, 50);
         ctx.fillStyle = "black"; ctx.textAlign="center"; ctx.font="bold 14px Arial"; ctx.fillText(myName, pos.x, pos.y-35);
 
         ctx.restore();
 
-        // MİNİ HARİTA (RADAR) - SAĞ ÜST
+        // MİNİ HARİTA (RADAR)
         const radarSize = 120;
         const radarMargin = 20;
         ctx.fillStyle = "rgba(0,0,0,0.5)";
@@ -163,18 +164,17 @@
         ctx.strokeStyle = "white";
         ctx.strokeRect(canvas.width - radarSize - radarMargin, radarMargin, radarSize, radarSize);
 
-        // Radar Noktaları
         const ratio = radarSize / 3000;
         // Sen (Yeşil Nokta)
         ctx.fillStyle = "#00ff00";
         ctx.beginPath();
-        ctx.arc(canvas.width - radarSize - radarMargin + (pos.x * ratio), radarMargin + (pos.y * ratio), 3, 0, Math.PI*2);
+        ctx.arc(canvas.width - radarSize - radarMargin + (pos.x * ratio), radarMargin + (pos.y * ratio), 4, 0, Math.PI*2);
         ctx.fill();
         // Diğerleri (Kırmızı Nokta)
         ctx.fillStyle = "#ff0000";
         Object.values(others).forEach(p => {
             ctx.beginPath();
-            ctx.arc(canvas.width - radarSize - radarMargin + (p.x * ratio), radarMargin + (p.y * ratio), 2, 0, Math.PI*2);
+            ctx.arc(canvas.width - radarSize - radarMargin + (p.x * ratio), radarMargin + (p.y * ratio), 3, 0, Math.PI*2);
             ctx.fill();
         });
 
