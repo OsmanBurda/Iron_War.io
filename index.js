@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
+const path = require('path');
 
 app.use(express.static(__dirname));
 
@@ -38,8 +39,8 @@ io.on('connection', (socket) => {
     });
 });
 
-// RENDER İÇİN KRİTİK PORT AYARI
+// RENDER İÇİN ÖZEL PORT AYARI
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, '0.0.0.0', () => {
-    console.log(`Sunucu ${PORT} portunda aktif!`);
+    console.log(`Sunucu ${PORT} portunda çalışıyor.`);
 });
