@@ -6,11 +6,9 @@
     <style>
         body { margin: 0; overflow: hidden; background: #111; touch-action: none; font-family: sans-serif; }
         canvas { display: block; }
-        #info { position: absolute; top: 10px; left: 10px; color: lime; pointer-events: none; }
     </style>
 </head>
 <body>
-<div id="info">Sürükleyerek Hareket Et</div>
 <canvas id="game"></canvas>
 <script>
     const canvas = document.getElementById('game');
@@ -18,47 +16,71 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    let player = { x: canvas.width/2, y: canvas.height/2, size: 25, color: '#00ff00' };
-    let joystick = { active: false, x: 0, y: 0 };
+    let player = { x: canvas.width/2, y: canvas.height/2, size: 25, color: '#00ff00', speed: 5 };
+    
+    // Joystick Ayarları
+    let joystick = { 
+        active: false, 
+        baseX: 0, baseY: 0, 
+        currentX: 0, currentY: 0, 
+        size: 50 
+    };
 
-    // MOBIL DOKUNMATIK KONTROLLER
     canvas.addEventListener('touchstart', e => {
         joystick.active = true;
-        joystick.x = e.touches[0].clientX;
-        joystick.y = e.touches[0].clientY;
+        joystick.baseX = e.touches[0].clientX;
+        joystick.baseY = e.touches[0].clientY;
+        joystick.currentX = joystick.baseX;
+        joystick.currentY = joystick.baseY;
     });
 
     canvas.addEventListener('touchmove', e => {
         if (!joystick.active) return;
-        let dx = e.touches[0].clientX - joystick.x;
-        let dy = e.touches[0].clientY - joystick.y;
-        
+        joystick.currentX = e.touches[0].clientX;
+        joystick.currentY = e.touches[0].clientY;
+
+        let dx = joystick.currentX - joystick.baseX;
+        let dy = joystick.currentY - joystick.baseY;
+        let dist = Math.sqrt(dx*dx + dy*dy);
         let angle = Math.atan2(dy, dx);
-        let speed = 4;
-        
-        player.x += Math.cos(angle) * speed;
-        player.y += Math.sin(angle) * speed;
-        
-        // Ekranda kalmasını sağla
-        player.x = Math.max(0, Math.min(canvas.width, player.x));
-        player.y = Math.max(0, Math.min(canvas.height, player.y));
-        
+
+        if (dist > 5) {
+            player.x += Math.cos(angle) * player.speed;
+            player.y += Math.sin(angle) * player.speed;
+        }
         e.preventDefault();
     }, {passive: false});
 
-    canvas.addEventListener('touchend', () => joystick.active = false);
+    canvas.addEventListener('touchend', () => {
+        joystick.active = false;
+    });
+
+    function drawJoystick() {
+        if (!joystick.active) return;
+        
+        // Dış halka
+        ctx.beginPath();
+        ctx.arc(joystick.baseX, joystick.baseY, joystick.size, 0, Math.PI*2);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // İç top (hareket eden kısım)
+        ctx.beginPath();
+        ctx.arc(joystick.currentX, joystick.currentY, 20, 0, Math.PI*2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+        ctx.fill();
+    }
 
     function loop() {
         ctx.fillStyle = '#111';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Oyuncuyu çiz (Yeşil kare)
+        // Oyuncu
         ctx.fillStyle = player.color;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = 'lime';
         ctx.fillRect(player.x - 12, player.y - 12, 25, 25);
-        ctx.shadowBlur = 0;
 
+        drawJoystick();
         requestAnimationFrame(loop);
     }
     loop();
