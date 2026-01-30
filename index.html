@@ -1,38 +1,67 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Iron_War.io - Osman</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Osman'ın Yeni Savaş Oyunu</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #1a1a1a; color: white; font-family: sans-serif; }
-        canvas { display: block; background: #222; }
-        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; }
+        body { margin: 0; overflow: hidden; background: #111; touch-action: none; font-family: sans-serif; }
+        canvas { display: block; }
+        #info { position: absolute; top: 10px; left: 10px; color: lime; pointer-events: none; }
     </style>
 </head>
 <body>
-    <div id="ui">
-        <div>Can: <span id="lives">3</span></div>
-        <div>Skor: <span id="score">0</span></div>
-        <div>Nasıl Oynanır: Boşluk: 4-Yön Ateş | B: Özel Güç</div>
-    </div>
-    <canvas id="gameCanvas"></canvas>
+<div id="info">Sürükleyerek Hareket Et</div>
+<canvas id="game"></canvas>
+<script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+    let player = { x: canvas.width/2, y: canvas.height/2, size: 25, color: '#00ff00' };
+    let joystick = { active: false, x: 0, y: 0 };
 
-        // Osman'ın Özel Ayarları: Zombi hızı düşük
-        let zombieSpeed = 0.5; 
+    // MOBIL DOKUNMATIK KONTROLLER
+    canvas.addEventListener('touchstart', e => {
+        joystick.active = true;
+        joystick.x = e.touches[0].clientX;
+        joystick.y = e.touches[0].clientY;
+    });
+
+    canvas.addEventListener('touchmove', e => {
+        if (!joystick.active) return;
+        let dx = e.touches[0].clientX - joystick.x;
+        let dy = e.touches[0].clientY - joystick.y;
         
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "cyan"; // Senin karakterin
-            ctx.fillRect(canvas.width/2, canvas.height/2, 30, 30);
-            requestAnimationFrame(draw);
-        }
-        draw();
-    </script>
+        let angle = Math.atan2(dy, dx);
+        let speed = 4;
+        
+        player.x += Math.cos(angle) * speed;
+        player.y += Math.sin(angle) * speed;
+        
+        // Ekranda kalmasını sağla
+        player.x = Math.max(0, Math.min(canvas.width, player.x));
+        player.y = Math.max(0, Math.min(canvas.height, player.y));
+        
+        e.preventDefault();
+    }, {passive: false});
+
+    canvas.addEventListener('touchend', () => joystick.active = false);
+
+    function loop() {
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Oyuncuyu çiz (Yeşil kare)
+        ctx.fillStyle = player.color;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'lime';
+        ctx.fillRect(player.x - 12, player.y - 12, 25, 25);
+        ctx.shadowBlur = 0;
+
+        requestAnimationFrame(loop);
+    }
+    loop();
+</script>
 </body>
 </html>
