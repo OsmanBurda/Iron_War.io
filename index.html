@@ -2,88 +2,129 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Osman'ın Yeni Savaş Oyunu</title>
+    <title>Iron_War.io - Büyük Harita</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #111; touch-action: none; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; }
         canvas { display: block; }
+        #ui { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; }
     </style>
 </head>
 <body>
+<div id="ui">Can: <span id="livesText">3</span> | Konum: <span id="posText">0,0</span></div>
 <canvas id="game"></canvas>
+
 <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    let player = { x: canvas.width/2, y: canvas.height/2, size: 25, color: '#00ff00', speed: 5 };
     
-    // Joystick Ayarları
-    let joystick = { 
-        active: false, 
-        baseX: 0, baseY: 0, 
-        currentX: 0, currentY: 0, 
-        size: 50 
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // HARİTA AYARLARI (Görüş açısından çok daha büyük)
+    const WORLD = { width: 3000, height: 3000 };
+    const WALL_THICKNESS = 20;
+
+    let player = { 
+        x: WORLD.width / 2, 
+        y: WORLD.height / 2, 
+        size: 30, 
+        color: '#00ff00', 
+        speed: 6, 
+        lives: 3 
     };
 
+    let joystick = { active: false, baseX: 0, baseY: 0, currX: 0, currY: 0 };
+
+    // MOBİL KONTROLLER
     canvas.addEventListener('touchstart', e => {
         joystick.active = true;
         joystick.baseX = e.touches[0].clientX;
         joystick.baseY = e.touches[0].clientY;
-        joystick.currentX = joystick.baseX;
-        joystick.currentY = joystick.baseY;
+        joystick.currX = joystick.baseX;
+        joystick.currY = joystick.baseY;
     });
 
     canvas.addEventListener('touchmove', e => {
         if (!joystick.active) return;
-        joystick.currentX = e.touches[0].clientX;
-        joystick.currentY = e.touches[0].clientY;
-
-        let dx = joystick.currentX - joystick.baseX;
-        let dy = joystick.currentY - joystick.baseY;
-        let dist = Math.sqrt(dx*dx + dy*dy);
-        let angle = Math.atan2(dy, dx);
-
-        if (dist > 5) {
-            player.x += Math.cos(angle) * player.speed;
-            player.y += Math.sin(angle) * player.speed;
-        }
+        joystick.currX = e.touches[0].clientX;
+        joystick.currY = e.touches[0].clientY;
         e.preventDefault();
     }, {passive: false});
 
-    canvas.addEventListener('touchend', () => {
-        joystick.active = false;
-    });
+    canvas.addEventListener('touchend', () => joystick.active = false);
 
-    function drawJoystick() {
-        if (!joystick.active) return;
+    function update() {
+        if (joystick.active) {
+            let dx = joystick.currX - joystick.baseX;
+            let dy = joystick.currY - joystick.baseY;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > 5) {
+                let angle = Math.atan2(dy, dx);
+                player.x += Math.cos(angle) * player.speed;
+                player.y += Math.sin(angle) * player.speed;
+            }
+        }
+
+        // KIRMIZI DUVAR ÇARPIŞMA KONTROLÜ
+        if (player.x < WALL_THICKNESS) player.x = WALL_THICKNESS;
+        if (player.y < WALL_THICKNESS) player.y = WALL_THICKNESS;
+        if (player.x > WORLD.width - WALL_THICKNESS) player.x = WORLD.width - WALL_THICKNESS;
+        if (player.y > WORLD.height - WALL_THICKNESS) player.y = WORLD.height - WALL_THICKNESS;
+
+        document.getElementById('posText').innerText = Math.round(player.x) + "," + Math.round(player.y);
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // KAMERA SİSTEMİ (Oyuncuyu ortalar)
+        ctx.save();
+        ctx.translate(canvas.width/2 - player.x, canvas.height/2 - player.y);
+
+        // Zemin Çizimi
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, WORLD.width, WORLD.height);
         
-        // Dış halka
-        ctx.beginPath();
-        ctx.arc(joystick.baseX, joystick.baseY, joystick.size, 0, Math.PI*2);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-        ctx.lineWidth = 3;
-        ctx.stroke();
+        // Izgara (Haritayı büyük hissettirmek için)
+        ctx.strokeStyle = '#333';
+        for(let i=0; i<WORLD.width; i+=100) {
+            ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, WORLD.height); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(WORLD.width, i); ctx.stroke();
+        }
 
-        // İç top (hareket eden kısım)
-        ctx.beginPath();
-        ctx.arc(joystick.currentX, joystick.currentY, 20, 0, Math.PI*2);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-        ctx.fill();
-    }
+        // KIRMIZI DUVARLAR
+        ctx.fillStyle = 'red';
+        ctx.fillRect(0, 0, WORLD.width, WALL_THICKNESS); // Üst
+        ctx.fillRect(0, WORLD.height - WALL_THICKNESS, WORLD.width, WALL_THICKNESS); // Alt
+        ctx.fillRect(0, 0, WALL_THICKNESS, WORLD.height); // Sol
+        ctx.fillRect(WORLD.width - WALL_THICKNESS, 0, WALL_THICKNESS, WORLD.height); // Sağ
 
-    function loop() {
-        ctx.fillStyle = '#111';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Oyuncu
+        // OYUNCU
         ctx.fillStyle = player.color;
-        ctx.fillRect(player.x - 12, player.y - 12, 25, 25);
+        ctx.shadowBlur = 15; ctx.shadowColor = 'lime';
+        ctx.fillRect(player.x - 15, player.y - 15, 30, 30);
+        ctx.shadowBlur = 0;
 
-        drawJoystick();
-        requestAnimationFrame(loop);
+        ctx.restore();
+
+        // JOYSTICK GÖRSELİ
+        if (joystick.active) {
+            ctx.beginPath();
+            ctx.arc(joystick.baseX, joystick.baseY, 50, 0, Math.PI*2);
+            ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(joystick.currX, joystick.currY, 25, 0, Math.PI*2);
+            ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.fill();
+        }
+
+        update();
+        requestAnimationFrame(draw);
     }
-    loop();
+    draw();
 </script>
 </body>
 </html>
