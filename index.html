@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron_War.io - Multiplayer</title>
+    <title>Iron_War.io</title>
     <style>
         body { margin: 0; overflow: hidden; background: #fff; touch-action: none; font-family: sans-serif; }
         canvas { display: block; }
@@ -25,49 +25,29 @@
 
     const WORLD = { width: 3000, height: 3000 };
     const WALL = 30;
+    const MINIMAP_SIZE = 140; 
     let player = { x: 1500, y: 1500, speed: 7, id: null };
     let otherPlayers = {};
     let joystick = { active: false, bx: 0, by: 0, cx: 0, cy: 0 };
 
-    // Sunucudan oyuncu bilgilerini al
-    socket.on('currentPlayers', (players) => {
-        Object.keys(players).forEach((id) => {
-            if (id === socket.id) {
-                player.id = id;
-            } else {
-                otherPlayers[id] = players[id];
-            }
-        });
-    });
-
-    socket.on('playerMoved', (playerInfo) => {
-        otherPlayers[playerInfo.id] = playerInfo;
-    });
-
+    socket.on('currentPlayers', (p) => { Object.keys(p).forEach(id => { if(id===socket.id) player.id=id; else otherPlayers[id]=p[id]; })});
+    socket.on('playerMoved', (p) => { otherPlayers[p.id] = p; });
     socket.on('playerDisconnected', (id) => { delete otherPlayers[id]; });
 
-    // Mobil Kontroller
     canvas.addEventListener('touchstart', e => {
-        joystick.active = true;
-        joystick.bx = e.touches[0].clientX;
-        joystick.by = e.touches[0].clientY;
-        joystick.cx = joystick.bx;
-        joystick.cy = joystick.by;
+        joystick.active = true; joystick.bx = e.touches[0].clientX; joystick.by = e.touches[0].clientY;
+        joystick.cx = joystick.bx; joystick.cy = joystick.by;
     });
 
     canvas.addEventListener('touchmove', e => {
         if (!joystick.active) return;
-        joystick.cx = e.touches[0].clientX;
-        joystick.cy = e.touches[0].clientY;
-        
-        let dx = joystick.cx - joystick.bx;
-        let dy = joystick.cy - joystick.by;
+        joystick.cx = e.touches[0].clientX; joystick.cy = e.touches[0].clientY;
+        let dx = joystick.cx - joystick.bx; let dy = joystick.cy - joystick.by;
         let dist = Math.sqrt(dx*dx + dy*dy);
         if (dist > 5) {
             let angle = Math.atan2(dy, dx);
             player.x += Math.cos(angle) * player.speed;
             player.y += Math.sin(angle) * player.speed;
-            // Hareketini sunucuya bildir
             socket.emit('playerMovement', { x: player.x, y: player.y });
         }
         e.preventDefault();
@@ -85,31 +65,39 @@
         ctx.save();
         ctx.translate(canvas.width/2 - player.x, canvas.height/2 - player.y);
 
-        // Beyaz Zemin ve Izgara
-        ctx.strokeStyle = '#f0f0f0';
+        // IZGARA (Görünür olması için rengi biraz koyulaştırdım)
+        ctx.strokeStyle = '#ddd'; 
+        ctx.lineWidth = 2;
         for(let i=0; i<=WORLD.width; i+=150) {
             ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, WORLD.height); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(WORLD.width, i); ctx.stroke();
         }
 
-        // Kırmızı Duvarlar
+        // KIRMIZI DUVARLAR
         ctx.fillStyle = '#ff4444';
         ctx.fillRect(0, 0, WORLD.width, WALL);
         ctx.fillRect(0, WORLD.height - WALL, WORLD.width, WALL);
         ctx.fillRect(0, 0, WALL, WORLD.height);
         ctx.fillRect(WORLD.width - WALL, 0, WALL, WORLD.height);
 
-        // DİĞER OYUNCULARI ÇİZ (Kırmızı kareler)
-        Object.keys(otherPlayers).forEach((id) => {
-            ctx.fillStyle = 'red';
-            ctx.fillRect(otherPlayers[id].x - 15, otherPlayers[id].y - 15, 30, 30);
-        });
-
-        // SENİ ÇİZ (Mavi kare)
-        ctx.fillStyle = '#3498db';
-        ctx.fillRect(player.x - 15, player.y - 15, 30, 30);
+        // OYUNCULAR
+        Object.keys(otherPlayers).forEach(id => { ctx.fillStyle = 'red'; ctx.fillRect(otherPlayers[id].x-15, otherPlayers[id].y-15, 30, 30); });
+        ctx.fillStyle = '#3498db'; ctx.fillRect(player.x-15, player.y-15, 30, 30);
 
         ctx.restore();
+
+        // MINI HARITA (SİLİNMEYECEK ŞEKİLDE BURADA)
+        const mmX = canvas.width - MINIMAP_SIZE - 20;
+        const mmY = 20;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.strokeStyle = '#999';
+        ctx.fillRect(mmX, mmY, MINIMAP_SIZE, MINIMAP_SIZE);
+        ctx.strokeRect(mmX, mmY, MINIMAP_SIZE, MINIMAP_SIZE);
+        let pMMX = mmX + (player.x / WORLD.width) * MINIMAP_SIZE;
+        let pMMY = mmY + (player.y / WORLD.height) * MINIMAP_SIZE;
+        ctx.fillStyle = '#3498db';
+        ctx.beginPath(); ctx.arc(pMMX, pMMY, 4, 0, Math.PI * 2); ctx.fill();
+
         requestAnimationFrame(loop);
     }
     loop();
