@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron_War.io - Beyaz</title>
+    <title>Iron_War.io - Beyaz Dünya</title>
     <style>
         body { margin: 0; overflow: hidden; background: #ffffff; touch-action: none; font-family: sans-serif; }
         canvas { display: block; background: #ffffff; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #000; pointer-events: none; z-index: 10; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #333; pointer-events: none; z-index: 10; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -43,23 +43,21 @@
         if (!joystick.active) return;
         joystick.cx = e.touches[0].clientX;
         joystick.cy = e.touches[0].clientY;
+        
+        let dx = joystick.cx - joystick.bx;
+        let dy = joystick.cy - joystick.by;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist > 5) {
+            let angle = Math.atan2(dy, dx);
+            player.x += Math.cos(angle) * player.speed;
+            player.y += Math.sin(angle) * player.speed;
+        }
         e.preventDefault();
     }, {passive: false});
 
     canvas.addEventListener('touchend', () => joystick.active = false);
 
     function loop() {
-        if (joystick.active) {
-            let dx = joystick.cx - joystick.bx;
-            let dy = joystick.cy - joystick.by;
-            let dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist > 5) {
-                let angle = Math.atan2(dy, dx);
-                player.x += Math.cos(angle) * player.speed;
-                player.y += Math.sin(angle) * player.speed;
-            }
-        }
-
         player.x = Math.max(WALL, Math.min(WORLD.width - WALL, player.x));
         player.y = Math.max(WALL, Math.min(WORLD.height - WALL, player.y));
 
@@ -69,45 +67,51 @@
         ctx.save();
         ctx.translate(canvas.width/2 - player.x, canvas.height/2 - player.y);
 
-        // Beyaz Zemin
+        // ZEMİN
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, WORLD.width, WORLD.height);
         
-        // Izgara
-        ctx.strokeStyle = '#f0f0f0';
+        // IZGARA (Açık Gri)
+        ctx.strokeStyle = '#f2f2f2';
+        ctx.lineWidth = 2;
         for(let i=0; i<=WORLD.width; i+=150) {
             ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, WORLD.height); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(WORLD.width, i); ctx.stroke();
         }
 
-        // Kırmızı Duvarlar
-        ctx.fillStyle = 'red';
+        // KIRMIZI DUVARLAR
+        ctx.fillStyle = '#ff4444';
         ctx.fillRect(0, 0, WORLD.width, WALL);
         ctx.fillRect(0, WORLD.height - WALL, WORLD.width, WALL);
         ctx.fillRect(0, 0, WALL, WORLD.height);
         ctx.fillRect(WORLD.width - WALL, 0, WALL, WORLD.height);
 
-        // Oyuncu
-        ctx.fillStyle = '#2ecc71';
+        // OYUNCU (Mavi Kare)
+        ctx.fillStyle = '#3498db';
         ctx.fillRect(player.x - 15, player.y - 15, 30, 30);
         ctx.restore();
 
-        // Mini Harita
+        // MİNİ HARİTA
         const mmX = canvas.width - MINIMAP_SIZE - 20;
         const mmY = 20;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.strokeStyle = '#ddd';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.strokeStyle = '#ccc';
         ctx.fillRect(mmX, mmY, MINIMAP_SIZE, MINIMAP_SIZE);
         ctx.strokeRect(mmX, mmY, MINIMAP_SIZE, MINIMAP_SIZE);
 
-        let playerMMX = mmX + (player.x / WORLD.width) * MINIMAP_SIZE;
-        let playerMMY = mmY + (player.y / WORLD.height) * MINIMAP_SIZE;
-        ctx.fillStyle = '#2ecc71';
-        ctx.beginPath(); ctx.arc(playerMMX, playerMMY, 4, 0, Math.PI * 2); ctx.fill();
+        let pMMX = mmX + (player.x / WORLD.width) * MINIMAP_SIZE;
+        let pMMY = mmY + (player.y / WORLD.height) * MINIMAP_SIZE;
+        ctx.fillStyle = '#3498db';
+        ctx.beginPath(); ctx.arc(pMMX, pMMY, 4, 0, Math.PI * 2); ctx.fill();
 
+        // JOYSTICK GÖRSELİ (Dokunduğunda Beyaz Haritada Gri Görünür)
         if (joystick.active) {
-            ctx.beginPath(); ctx.arc(joystick.bx, joystick.by, 50, 0, Math.PI*2);
+            ctx.beginPath();
+            ctx.arc(joystick.bx, joystick.by, 50, 0, Math.PI*2);
             ctx.strokeStyle = "rgba(0,0,0,0.1)"; ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(joystick.cx, joystick.cy, 20, 0, Math.PI*2);
+            ctx.fillStyle = "rgba(0,0,0,0.1)"; ctx.fill();
         }
 
         requestAnimationFrame(loop);
