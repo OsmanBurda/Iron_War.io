@@ -1,150 +1,40 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron_War.io - El Clasico</title>
-    <style>
-        body { margin: 0; overflow: hidden; background: #fff; touch-action: none; font-family: sans-serif; }
-        canvas { display: block; z-index: 1; }
-        
-        #menuOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: white; display: flex; align-items: center; justify-content: center; z-index: 9999;
+const express = require('express');
+const app = express();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
+
+app.use(express.static(__dirname));
+
+let players = {};
+
+io.on('connection', (socket) => {
+    players[socket.id] = { 
+        x: 1500, y: 1500, id: socket.id, 
+        name: "Osman", color: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0NPrkQ7yE9Z08S5XkG9D9Q9J-uG8n7f-GgA&s" 
+    };
+    
+    socket.emit('currentPlayers', players);
+
+    socket.on('startGame', (data) => {
+        if (players[socket.id]) {
+            players[socket.id].name = data.name;
+            players[socket.id].color = data.color;
+            io.emit('updatePlayerInfo', players[socket.id]);
         }
-        #menuBox { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center; width: 85%; max-width: 400px; }
-        input { padding: 12px; width: 90%; margin-bottom: 15px; border: 2px solid #3498db; border-radius: 8px; text-align: center; font-size: 16px; }
-        
-        .costume-title { font-weight: bold; margin-bottom: 10px; color: #333; }
-        .costume-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
-        .costume-btn {
-            width: 75px; height: 75px; border-radius: 12px; border: 4px solid #eee;
-            background-size: cover; background-position: center; cursor: pointer; transition: 0.2s;
-            position: relative;
-        }
-        .costume-btn.selected { border-color: #3498db; transform: scale(1.1); }
-        .costume-label { font-size: 11px; position: absolute; bottom: -20px; left: 0; width: 100%; font-weight: bold; }
-        
-        #playBtn { padding: 15px; background: #2ecc71; color: white; border: none; border-radius: 10px; width: 100%; font-weight: bold; font-size: 18px; margin-top: 10px; }
-
-        #joy-bg {
-            position: absolute; bottom: 40px; left: 40px; width: 110px; height: 110px;
-            background: rgba(52, 152, 219, 0.3); border: 4px solid #3498db; border-radius: 50%; display: none; z-index: 100;
-        }
-        #joy-thumb {
-            position: absolute; top: 50%; left: 50%; width: 45px; height: 45px;
-            background: #2980b9; border-radius: 50%; transform: translate(-50%, -50%);
-        }
-    </style>
-</head>
-<body>
-
-    <div id="menuOverlay">
-        <div id="menuBox">
-            <h2>Iron_War.io</h2>
-            <input type="text" id="pName" value="Osman" maxlength="12">
-            
-            <div class="costume-title">Kostüm Seç:</div>
-            <div class="costume-container">
-                <div class="costume-btn selected" 
-                     style="background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0NPrkQ7yE9Z08S5XkG9D9Q9J-uG8n7f-GgA&s')" 
-                     data-url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0NPrkQ7yE9Z08S5XkG9D9Q9J-uG8n7f-GgA&s">
-                     <span class="costume-label">Ronaldo</span>
-                </div>
-                <div class="costume-btn" 
-                     style="background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcThtVj37-eOY-5h5XT35IgJIcakN0p5wb1AiVncibEUsw&s=10')" 
-                     data-url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcThtVj37-eOY-5h5XT35IgJIcakN0p5wb1AiVncibEUsw&s=10">
-                     <span class="costume-label">Messi</span>
-                </div>
-            </div>
-
-            <button id="playBtn">MAÇI BAŞLAT!</button>
-        </div>
-    </div>
-
-    <div id="joy-bg"><div id="joy-thumb"></div></div>
-    <div id="ui" style="position:absolute; top:10px; left:10px; z-index:50; font-weight:bold;">Can: 3</div>
-    <canvas id="game"></canvas>
-
-<script src="/socket.io/socket.io.js"></script>
-<script>
-    const socket = io();
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-
-    let myName = "Osman";
-    let myLink = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0NPrkQ7yE9Z08S5XkG9D9Q9J-uG8n7f-GgA&s";
-    let playing = false;
-    let pImg = new Image();
-    let otherImgs = {};
-
-    document.querySelectorAll('.costume-btn').forEach(b => {
-        b.onclick = () => {
-            document.querySelectorAll('.costume-btn').forEach(x => x.classList.remove('selected'));
-            b.classList.add('selected');
-            myLink = b.dataset.url;
-        };
     });
 
-    document.getElementById('playBtn').onclick = () => {
-        myName = document.getElementById('pName').value || "Osman";
-        pImg.src = myLink;
-        socket.emit('startGame', { name: myName, color: myLink });
-        document.getElementById('menuOverlay').style.display = 'none';
-        document.getElementById('joy-bg').style.display = 'block';
-        playing = true;
-    };
+    socket.on('playerMovement', (mv) => {
+        if (players[socket.id]) {
+            players[socket.id].x = mv.x;
+            players[socket.id].y = mv.y;
+            socket.broadcast.emit('playerMoved', players[socket.id]);
+        }
+    });
 
-    let pos = { x: 1500, y: 1500 };
-    let others = {};
-    let joy = { active: false, dx: 0, dy: 0 };
+    socket.on('disconnect', () => {
+        delete players[socket.id];
+        io.emit('playerDisconnected', socket.id);
+    });
+});
 
-    socket.on('currentPlayers', p => { Object.keys(p).forEach(id => { if(id!==socket.id) others[id]=p[id]; })});
-    socket.on('playerMoved', p => others[p.id] = p);
-    socket.on('updatePlayerInfo', p => others[p.id] = p);
-
-    const jBg = document.getElementById('joy-bg');
-    const jTh = document.getElementById('joy-thumb');
-    jBg.ontouchstart = e => { joy.active = true; moveJoy(e.touches[0]); };
-    jBg.ontouchmove = e => { moveJoy(e.touches[0]); e.preventDefault(); };
-    jBg.ontouchend = () => { joy.active = false; jTh.style.left='50%'; jTh.style.top='50%'; joy.dx=0; joy.dy=0; };
-
-    function moveJoy(t) {
-        let r = jBg.getBoundingClientRect();
-        let x = t.clientX - (r.left + 55);
-        let y = t.clientY - (r.top + 55);
-        let d = Math.sqrt(x*x+y*y);
-        if(d > 45) { x *= 45/d; y *= 45/d; }
-        jTh.style.left = (55 + x) + 'px'; jTh.style.top = (55 + y) + 'px';
-        joy.dx = x/45; joy.dy = y/45;
-    }
-
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if(!playing) return requestAnimationFrame(draw);
-
-        pos.x += joy.dx * 7; pos.y += joy.dy * 7;
-        socket.emit('playerMovement', pos);
-
-        ctx.save();
-        ctx.translate(canvas.width/2 - pos.x, canvas.height/2 - pos.y);
-        
-        // DİĞER OYUNCULAR
-        Object.values(others).forEach(p => {
-            if(!otherImgs[p.color]) { otherImgs[p.color] = new Image(); otherImgs[p.color].src = p.color; }
-            if(otherImgs[p.color].complete) ctx.drawImage(otherImgs[p.color], p.x-25, p.y-25, 50, 50);
-            ctx.fillStyle = "black"; ctx.fillText(p.name, p.x, p.y-35);
-        });
-
-        // KENDİN (SEÇTİĞİN KOSTÜM)
-        if(pImg.complete) ctx.drawImage(pImg, pos.x-25, pos.y-25, 50, 50);
-        ctx.fillStyle = "black"; ctx.textAlign = "center"; ctx.fillText(myName, pos.x, pos.y-35);
-
-        ctx.restore();
-        requestAnimationFrame(draw);
-    }
-    draw();
-</script>
-</body>
-</html>
+http.listen(process.env.PORT || 3000, () => console.log('Ronaldo ve Messi Hazır!'));
