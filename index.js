@@ -4,16 +4,31 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const path = require('path');
 
-// Osman, burası beyaz ekranın anahtarı
 app.use(express.static(__dirname));
 
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+let players = {};
 
 io.on('connection', (socket) => {
-    console.log('Beyaz dünyaya biri katıldı!');
+    // Yeni oyuncu eklendiğinde (Osman: 3 Can kuralı dahil)
+    players[socket.id] = { x: 1500, y: 1500, id: socket.id, lives: 3 };
+    
+    // Tüm oyunculara yeni gelen kişiyi bildir
+    io.emit('currentPlayers', players);
+
+    // Hareket verisi geldiğinde güncelle
+    socket.on('playerMovement', (movementData) => {
+        if (players[socket.id]) {
+            players[socket.id].x = movementData.x;
+            players[socket.id].y = movementData.y;
+            socket.broadcast.emit('playerMoved', players[socket.id]);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        delete players[socket.id];
+        io.emit('playerDisconnected', socket.id);
+    });
 });
 
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => console.log('Sunucu BEYAZ modda hazır!'));
+http.listen(PORT, () => console.log('Savaş başladı! Port: ' + PORT));
