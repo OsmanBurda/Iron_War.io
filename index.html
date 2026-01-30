@@ -3,64 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron_War.io - Menü</title>
+    <title>Iron_War.io</title>
     <style>
         body { margin: 0; overflow: hidden; background: #fff; touch-action: none; font-family: 'Arial', sans-serif; }
-        canvas { display: block; }
+        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        /* OYUN ARAYÜZÜ */
-        #ui { position: absolute; top: 10px; left: 10px; color: #333; pointer-events: none; z-index: 10; font-weight: bold; }
+        /* OYUN BİLGİLERİ */
+        #ui { position: absolute; top: 10px; left: 10px; color: #333; pointer-events: none; z-index: 50; font-weight: bold; font-size: 18px; }
 
-        /* GİRİŞ MENÜSÜ TASARIMI */
+        /* GİRİŞ MENÜSÜ (EN ÜSTTE) */
         #menuOverlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.95);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 1); /* Tam beyaz arka plan */
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 100;
+            z-index: 9999; /* Her şeyin üstünde */
         }
         #menuBox {
-            background: white; padding: 20px; border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center;
-            border: 2px solid #eee; width: 300px;
+            background: white; padding: 25px; border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center;
+            border: 2px solid #ddd; width: 85%; max-width: 350px;
         }
+        h2 { margin-top: 0; color: #333; }
         input {
-            padding: 10px; width: 80%; margin-bottom: 15px;
-            border: 2px solid #ddd; border-radius: 5px; font-size: 16px; text-align: center;
+            padding: 12px; width: 80%; margin-bottom: 20px;
+            border: 2px solid #3498db; border-radius: 8px; font-size: 16px; text-align: center; outline: none;
         }
+        .color-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
         .color-btn {
-            width: 40px; height: 40px; border-radius: 50%; border: 3px solid transparent;
-            cursor: pointer; display: inline-block; margin: 5px;
+            width: 45px; height: 45px; border-radius: 50%; border: 3px solid transparent;
+            cursor: pointer; transition: transform 0.2s;
         }
         .color-btn.selected { border: 3px solid #333; transform: scale(1.1); }
         
         button#playBtn {
-            padding: 12px 30px; background: #2ecc71; color: white; border: none;
-            border-radius: 8px; font-size: 18px; cursor: pointer; margin-top: 15px;
-            font-weight: bold; width: 100%;
+            padding: 15px 40px; background: #2ecc71; color: white; border: none;
+            border-radius: 10px; font-size: 20px; cursor: pointer; font-weight: bold; width: 100%;
+            box-shadow: 0 5px 0 #27ae60;
         }
-        button#playBtn:active { transform: scale(0.95); }
+        button#playBtn:active { transform: translateY(5px); box-shadow: none; }
+
+        /* MAVİ JOYSTICK (SOL ALTTA SABİT) */
+        #joystick-zone {
+            position: absolute; bottom: 50px; left: 50px;
+            width: 120px; height: 120px;
+            background: rgba(52, 152, 219, 0.3); /* Açık Mavi */
+            border: 4px solid #3498db; /* Koyu Mavi Çerçeve */
+            border-radius: 50%;
+            z-index: 100; /* Menüden düşük ama oyundan yüksek */
+            display: none; /* Başta gizli, oyun başlayınca açılacak */
+        }
+        /* Joystick'in içindeki oynayan top */
+        #joystick-stick {
+            position: absolute; top: 50%; left: 50%;
+            width: 50px; height: 50px;
+            background: #2980b9; /* Koyu Mavi */
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: inset 0 5px 10px rgba(255,255,255,0.3), 0 5px 10px rgba(0,0,0,0.2);
+            pointer-events: none; /* Dokunmayı engellemesin */
+        }
+        /* Ok İşaretleri (Süs) */
+        .arrow { position: absolute; color: #3498db; font-weight: bold; font-size: 20px; }
+        .up { top: 5px; left: 50%; transform: translateX(-50%); }
+        .down { bottom: 5px; left: 50%; transform: translateX(-50%); }
+        .left { left: 5px; top: 50%; transform: translateY(-50%); }
+        .right { right: 5px; top: 50%; transform: translateY(-50%); }
+
     </style>
 </head>
 <body>
 
     <div id="menuOverlay">
         <div id="menuBox">
-            <h2>Savaşa Katıl</h2>
-            <input type="text" id="playerNameInput" placeholder="Adını Yaz..." maxlength="10">
+            <h2>Savaşa Hazır Mısın?</h2>
+            <input type="text" id="playerNameInput" placeholder="İsmini Yaz" maxlength="12">
             
-            <div id="colorSelection">
-                <div class="color-btn selected" style="background:#3498db" data-color="#3498db"></div>
-                <div class="color-btn" style="background:#e74c3c" data-color="#e74c3c"></div>
-                <div class="color-btn" style="background:#9b59b6" data-color="#9b59b6"></div>
-                <div class="color-btn" style="background:#f1c40f" data-color="#f1c40f"></div>
-                <div class="color-btn" style="background:#34495e" data-color="#34495e"></div>
-            </div>
+            <div class="color-container">
+                <div class="color-btn selected" style="background:#3498db" data-color="#3498db"></div> <div class="color-btn" style="background:#e74c3c" data-color="#e74c3c"></div> <div class="color-btn" style="background:#f1c40f" data-color="#f1c40f"></div> <div class="color-btn" style="background:#2c3e50" data-color="#2c3e50"></div> <div class="color-btn" style="background:#9b59b6" data-color="#9b59b6"></div> </div>
 
-            <button id="playBtn">OYNA</button>
+            <button id="playBtn">BAŞLA</button>
         </div>
     </div>
 
     <div id="ui">Can: 3</div>
+    
+    <div id="joystick-zone">
+        <div class="arrow up">▲</div>
+        <div class="arrow down">▼</div>
+        <div class="arrow left">◀</div>
+        <div class="arrow right">▶</div>
+        <div id="joystick-stick"></div>
+    </div>
+
     <canvas id="game"></canvas>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -69,11 +103,19 @@
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     
+    // Ekran Boyutlandırma
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resize);
     resize();
 
-    // MENÜ MANTIĞI
+    // DEĞİŞKENLER
+    const WORLD = { width: 3000, height: 3000 };
+    const WALL = 30;
+    const MINIMAP_SIZE = 140; 
+    let player = { x: 1500, y: 1500, speed: 7, id: null };
+    let otherPlayers = {};
+    
+    // MENÜ VE OYUN DURUMU
     let myName = "Misafir";
     let myColor = "#3498db";
     let isGameRunning = false;
@@ -87,80 +129,119 @@
         });
     });
 
-    // Oyna Butonu
+    // BAŞLA BUTONU
     document.getElementById('playBtn').addEventListener('click', () => {
         const inputName = document.getElementById('playerNameInput').value;
         if(inputName.trim() !== "") myName = inputName;
         
-        // Sunucuya ismini ve rengini gönder
         socket.emit('startGame', { name: myName, color: myColor });
         
-        // Menüyü kapat
-        document.getElementById('menuOverlay').style.display = 'none';
+        document.getElementById('menuOverlay').style.display = 'none'; // Menüyü gizle
+        document.getElementById('joystick-zone').style.display = 'block'; // Joystick'i aç
         isGameRunning = true;
     });
 
-    // OYUN DEĞİŞKENLERİ
-    const WORLD = { width: 3000, height: 3000 };
-    const WALL = 30;
-    const MINIMAP_SIZE = 140; 
-    let player = { x: 1500, y: 1500, speed: 7, id: null };
-    let otherPlayers = {};
-    let joystick = { active: false, bx: 0, by: 0, cx: 0, cy: 0 };
-
+    // SUNUCU DİNLEME
     socket.on('currentPlayers', (p) => { 
         Object.keys(p).forEach(id => { 
-            if(id===socket.id) {
-                player.id=id; 
-                // Eğer sunucuda kayıtlı bir renk varsa onu almayalım, menüden seçileni kullanalım
-            } else { 
-                otherPlayers[id]=p[id]; 
-            }
+            if(id===socket.id) { player.id=id; } else { otherPlayers[id]=p[id]; }
         });
     });
-    
     socket.on('playerMoved', (p) => { otherPlayers[p.id] = p; });
-    socket.on('updatePlayerInfo', (p) => { 
-        if(p.id !== socket.id) otherPlayers[p.id] = p; 
-    });
+    socket.on('updatePlayerInfo', (p) => { if(p.id !== socket.id) otherPlayers[p.id] = p; });
     socket.on('playerDisconnected', (id) => { delete otherPlayers[id]; });
 
-    // JOYSTICK KONTROLLERİ
-    canvas.addEventListener('touchstart', e => {
-        if(!isGameRunning) return; // Menüdeyken hareket etme
-        joystick.active = true; joystick.bx = e.touches[0].clientX; joystick.by = e.touches[0].clientY;
-        joystick.cx = joystick.bx; joystick.cy = joystick.by;
-    });
+    // --- YENİ JOYSTICK MANTIĞI ---
+    const joyZone = document.getElementById('joystick-zone');
+    const joyStick = document.getElementById('joystick-stick');
+    let joystick = { active: false, dx: 0, dy: 0 }; // dx, dy: hareket yönü
 
-    canvas.addEventListener('touchmove', e => {
-        if (!joystick.active || !isGameRunning) return;
-        joystick.cx = e.touches[0].clientX; joystick.cy = e.touches[0].clientY;
-        let dx = joystick.cx - joystick.bx; let dy = joystick.cy - joystick.by;
-        let dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist > 5) {
-            let angle = Math.atan2(dy, dx);
-            player.x += Math.cos(angle) * player.speed;
-            player.y += Math.sin(angle) * player.speed;
-            socket.emit('playerMovement', { x: player.x, y: player.y });
+    // Joystick alanına dokunma olayları
+    joyZone.addEventListener('touchstart', startJoy, {passive: false});
+    joyZone.addEventListener('touchmove', moveJoy, {passive: false});
+    joyZone.addEventListener('touchend', endJoy);
+
+    // Tüm ekran için de destek (Joystick'i kaçırırsa diye)
+    // Ancak sen "sabit" bir görsel istedin, bu yüzden sadece o alana odaklanalım.
+    
+    function startJoy(e) {
+        if(!isGameRunning) return;
+        joystick.active = true;
+        updateStick(e.touches[0]);
+    }
+
+    function moveJoy(e) {
+        if(!joystick.active) return;
+        updateStick(e.touches[0]);
+        e.preventDefault(); // Sayfa kaymasını engelle
+    }
+
+    function endJoy() {
+        joystick.active = false;
+        joystick.dx = 0; 
+        joystick.dy = 0;
+        // Topu merkeze çek
+        joyStick.style.transform = `translate(-50%, -50%)`;
+        joyStick.style.top = "50%";
+        joyStick.style.left = "50%";
+    }
+
+    function updateStick(touch) {
+        // Joystick merkezini bul
+        const rect = joyZone.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        // Dokunulan yerin merkeze uzaklığı
+        let x = touch.clientX - centerX;
+        let y = touch.clientY - centerY;
+        
+        // Mesafeyi hesapla
+        const dist = Math.sqrt(x*x + y*y);
+        const maxDist = rect.width / 2 - 25; // Çemberin içinde kalması için sınır
+
+        // Eğer sınırın dışındaysa, sınırda tut
+        if (dist > maxDist) {
+            x = (x / dist) * maxDist;
+            y = (y / dist) * maxDist;
         }
-        e.preventDefault();
-    }, {passive: false});
 
-    canvas.addEventListener('touchend', () => joystick.active = false);
+        // Topu hareket ettir (Görsel)
+        joyStick.style.top = `calc(50% + ${y}px)`;
+        joyStick.style.left = `calc(50% + ${x}px)`;
 
+        // Oyuncu hareketi için değerleri ayarla
+        joystick.dx = x;
+        joystick.dy = y;
+    }
+
+    // OYUN DÖNGÜSÜ
     function loop() {
         if(isGameRunning) {
+            // Hareket Hesaplama
+            if (joystick.active) {
+                let dist = Math.sqrt(joystick.dx*joystick.dx + joystick.dy*joystick.dy);
+                if (dist > 5) {
+                    let angle = Math.atan2(joystick.dy, joystick.dx);
+                    player.x += Math.cos(angle) * player.speed;
+                    player.y += Math.sin(angle) * player.speed;
+                    socket.emit('playerMovement', { x: player.x, y: player.y });
+                }
+            }
+
+            // Duvar Sınırları
             player.x = Math.max(WALL, Math.min(WORLD.width - WALL, player.x));
             player.y = Math.max(WALL, Math.min(WORLD.height - WALL, player.y));
         }
 
+        // ÇİZİM
         ctx.fillStyle = "#fff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.save();
         ctx.translate(canvas.width/2 - player.x, canvas.height/2 - player.y);
 
-        // IZGARA
+        // ZEMİN & IZGARA
         ctx.strokeStyle = '#ddd'; ctx.lineWidth = 2;
         for(let i=0; i<=WORLD.width; i+=150) {
             ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, WORLD.height); ctx.stroke();
@@ -174,31 +255,27 @@
         ctx.fillRect(0, 0, WALL, WORLD.height);
         ctx.fillRect(WORLD.width - WALL, 0, WALL, WORLD.height);
 
-        // DİĞER OYUNCULARI ÇİZ
+        // DİĞER OYUNCULAR
         Object.keys(otherPlayers).forEach(id => { 
             let p = otherPlayers[id];
-            ctx.fillStyle = p.color || 'red'; // Kostüm rengi
+            ctx.fillStyle = p.color || 'red'; 
             ctx.fillRect(p.x-15, p.y-15, 30, 30);
             
-            // İsim Yazısı
-            ctx.fillStyle = '#333';
-            ctx.font = '12px Arial';
-            ctx.textAlign = 'center';
+            ctx.fillStyle = '#333'; ctx.font = '12px Arial'; ctx.textAlign = 'center';
             ctx.fillText(p.name || "Adsız", p.x, p.y - 20);
         });
 
-        // SENİ ÇİZ
-        ctx.fillStyle = myColor; // Senin seçtiğin renk
-        ctx.fillRect(player.x-15, player.y-15, 30, 30);
-        // Senin İsmin
-        ctx.fillStyle = '#333';
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(myName, player.x, player.y - 20);
+        // SEN
+        if(isGameRunning) {
+            ctx.fillStyle = myColor;
+            ctx.fillRect(player.x-15, player.y-15, 30, 30);
+            ctx.fillStyle = '#333'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center';
+            ctx.fillText(myName, player.x, player.y - 20);
+        }
 
         ctx.restore();
 
-        // MİNİ HARİTA
+        // MİNİ HARİTA (SABİT)
         const mmX = canvas.width - MINIMAP_SIZE - 20;
         const mmY = 20;
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
@@ -209,14 +286,6 @@
         let pMMY = mmY + (player.y / WORLD.height) * MINIMAP_SIZE;
         ctx.fillStyle = myColor;
         ctx.beginPath(); ctx.arc(pMMX, pMMY, 4, 0, Math.PI * 2); ctx.fill();
-
-        // JOYSTICK
-        if (joystick.active && isGameRunning) {
-            ctx.beginPath(); ctx.arc(joystick.bx, joystick.by, 50, 0, Math.PI*2);
-            ctx.strokeStyle = "rgba(0,0,0,0.1)"; ctx.stroke();
-            ctx.beginPath(); ctx.arc(joystick.cx, joystick.cy, 20, 0, Math.PI*2);
-            ctx.fillStyle = "rgba(0,0,0,0.1)"; ctx.fill();
-        }
 
         requestAnimationFrame(loop);
     }
