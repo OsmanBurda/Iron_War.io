@@ -15,17 +15,18 @@
         #menuBox { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center; width: 85%; max-width: 400px; }
         input { padding: 12px; width: 90%; margin-bottom: 15px; border: 2px solid #3498db; border-radius: 8px; text-align: center; font-size: 16px; }
         
-        .costume-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
+        .costume-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
         .costume-btn {
-            width: 75px; height: 75px; border-radius: 12px; border: 4px solid #eee;
+            width: 80px; height: 80px; border-radius: 12px; border: 4px solid #eee;
             background-size: cover; background-position: center; cursor: pointer; transition: 0.2s;
-            position: relative;
+            position: relative; background-color: #f9f9f9;
         }
         .costume-btn.selected { border-color: #3498db; transform: scale(1.1); }
         .costume-label { font-size: 11px; position: absolute; bottom: -20px; left: 0; width: 100%; font-weight: bold; }
         
         #playBtn { padding: 15px; background: #2ecc71; color: white; border: none; border-radius: 10px; width: 100%; font-weight: bold; font-size: 18px; margin-top: 10px; }
 
+        /* MAVİ JOYSTICK */
         #joy-bg {
             position: absolute; bottom: 40px; left: 40px; width: 110px; height: 110px;
             background: rgba(52, 152, 219, 0.3); border: 4px solid #3498db; border-radius: 50%; display: none; z-index: 100;
@@ -45,8 +46,8 @@
             
             <div class="costume-container">
                 <div class="costume-btn selected" 
-                     style="background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0NPrkQ7yE9Z08S5XkG9D9Q9J-uG8n7f-GgA&s')" 
-                     data-url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0NPrkQ7yE9Z08S5XkG9D9Q9J-uG8n7f-GgA&s">
+                     style="background-image: url('https://i.imgur.com/8pA9K5X.png')" 
+                     data-url="https://i.imgur.com/8pA9K5X.png">
                      <span class="costume-label">Ronaldo</span>
                 </div>
                 <div class="costume-btn" 
@@ -72,10 +73,10 @@
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
     let myName = "Osman";
-    let myLink = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0NPrkQ7yE9Z08S5XkG9D9Q9J-uG8n7f-GgA&s"; // Ronaldo varsayılan
+    let myLink = "https://i.imgur.com/8pA9K5X.png"; 
     let playing = false;
     let myHeroImg = new Image(); 
-    let otherHeros = {}; // Diğer oyuncuların resimlerini burada depolayacağız
+    let otherHeros = {}; 
 
     document.querySelectorAll('.costume-btn').forEach(b => {
         b.onclick = () => {
@@ -98,17 +99,11 @@
     let others = {};
     let joy = { active: false, dx: 0, dy: 0 };
 
-    socket.on('currentPlayers', p => { 
-        Object.keys(p).forEach(id => { 
-            if(id !== socket.id) others[id] = p[id]; 
-        });
-    });
-    
+    socket.on('currentPlayers', p => { Object.keys(p).forEach(id => { if(id !== socket.id) others[id] = p[id]; }); });
     socket.on('playerMoved', p => others[p.id] = p);
     socket.on('updatePlayerInfo', p => others[p.id] = p);
-    socket.on('playerDisconnected', id => delete others[id]);
+    socket.on('playerDisconnected', id => { delete others[id]; delete otherHeros[id]; });
 
-    // MAVİ JOYSTICK KONTROLLERİ
     const jBg = document.getElementById('joy-bg');
     const jTh = document.getElementById('joy-thumb');
     jBg.ontouchstart = e => { joy.active = true; moveJoy(e.touches[0]); };
@@ -130,6 +125,8 @@
         if(!playing) return requestAnimationFrame(draw);
 
         pos.x += joy.dx * 7; pos.y += joy.dy * 7;
+        pos.x = Math.max(0, Math.min(3000, pos.x));
+        pos.y = Math.max(0, Math.min(3000, pos.y));
         socket.emit('playerMovement', pos);
 
         ctx.save();
@@ -142,30 +139,45 @@
             ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(3000,i); ctx.stroke();
         }
 
-        // DİĞER OYUNCULARI ÇİZ (Kendi kostümleriyle)
+        // DİĞERLERİ
         Object.values(others).forEach(p => {
-            // Eğer bu oyuncunun resmi henüz yüklenmediyse yükle
             if(!otherHeros[p.id] || otherHeros[p.id].url !== p.color) {
-                let img = new Image();
-                img.src = p.color;
+                let img = new Image(); img.src = p.color;
                 otherHeros[p.id] = { img: img, url: p.color };
             }
-            
-            if(otherHeros[p.id].img.complete) {
-                ctx.drawImage(otherHeros[p.id].img, p.x-25, p.y-25, 50, 50);
-            }
-            ctx.fillStyle = "black"; ctx.textAlign = "center";
-            ctx.fillText(p.name, p.x, p.y-35);
+            if(otherHeros[p.id].img.complete) ctx.drawImage(otherHeros[p.id].img, p.x-25, p.y-25, 50, 50);
+            ctx.fillStyle = "black"; ctx.textAlign="center"; ctx.fillText(p.name, p.x, p.y-35);
         });
 
-        // KENDİNİ ÇİZ
-        if(myHeroImg.complete) {
-            ctx.drawImage(myHeroImg, pos.x-25, pos.y-25, 50, 50);
-        }
-        ctx.fillStyle = "black"; ctx.textAlign = "center"; ctx.font = "bold 14px Arial";
-        ctx.fillText(myName, pos.x, pos.y-35);
+        // KENDİN
+        if(myHeroImg.complete) ctx.drawImage(myHeroImg, pos.x-25, pos.y-25, 50, 50);
+        ctx.fillStyle = "black"; ctx.textAlign="center"; ctx.font="bold 14px Arial"; ctx.fillText(myName, pos.x, pos.y-35);
 
         ctx.restore();
+
+        // MİNİ HARİTA (RADAR) - SAĞ ÜST
+        const radarSize = 120;
+        const radarMargin = 20;
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillRect(canvas.width - radarSize - radarMargin, radarMargin, radarSize, radarSize);
+        ctx.strokeStyle = "white";
+        ctx.strokeRect(canvas.width - radarSize - radarMargin, radarMargin, radarSize, radarSize);
+
+        // Radar Noktaları
+        const ratio = radarSize / 3000;
+        // Sen (Yeşil Nokta)
+        ctx.fillStyle = "#00ff00";
+        ctx.beginPath();
+        ctx.arc(canvas.width - radarSize - radarMargin + (pos.x * ratio), radarMargin + (pos.y * ratio), 3, 0, Math.PI*2);
+        ctx.fill();
+        // Diğerleri (Kırmızı Nokta)
+        ctx.fillStyle = "#ff0000";
+        Object.values(others).forEach(p => {
+            ctx.beginPath();
+            ctx.arc(canvas.width - radarSize - radarMargin + (p.x * ratio), radarMargin + (p.y * ratio), 2, 0, Math.PI*2);
+            ctx.fill();
+        });
+
         requestAnimationFrame(draw);
     }
     draw();
