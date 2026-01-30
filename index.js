@@ -8,15 +8,12 @@ app.use(express.static(__dirname));
 let players = {};
 
 io.on('connection', (socket) => {
-    // Yeni oyuncu bağlandığında varsayılan ayarlar
     players[socket.id] = { 
         x: 1500, y: 1500, id: socket.id, 
         name: "Osman", 
         color: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe_nMarGj4bTgbT3erB8NoJGVamlFJFQf5KNAuWOvfnQ&s=10" 
     };
-    
     socket.emit('currentPlayers', players);
-
     socket.on('startGame', (data) => {
         if (players[socket.id]) {
             players[socket.id].name = data.name;
@@ -24,7 +21,6 @@ io.on('connection', (socket) => {
             io.emit('updatePlayerInfo', players[socket.id]);
         }
     });
-
     socket.on('playerMovement', (mv) => {
         if (players[socket.id]) {
             players[socket.id].x = mv.x;
@@ -32,15 +28,13 @@ io.on('connection', (socket) => {
             socket.broadcast.emit('playerMoved', players[socket.id]);
         }
     });
-
     socket.on('disconnect', () => {
         delete players[socket.id];
         io.emit('playerDisconnected', socket.id);
     });
 });
 
-// Render için kritik: 0.0.0.0 üzerinden dinleme yapmalı
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, '0.0.0.0', () => {
-    console.log(`Sunucu ${PORT} portunda hazir!`);
+    console.log(`Server running on port ${PORT}`);
 });
