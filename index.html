@@ -2,11 +2,11 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron_War.io - Mini Harita</title>
+    <title>Iron_War.io - Beyaz Tema</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background: #eee; touch-action: none; font-family: sans-serif; }
         canvas { display: block; }
-        #ui { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; text-shadow: 1px 1px 2px black; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #333; pointer-events: none; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -26,7 +26,7 @@
 
     const WORLD = { width: 3000, height: 3000 };
     const WALL = 25;
-    const MINIMAP_SIZE = 150; // Sağ üstteki haritanın boyutu
+    const MINIMAP_SIZE = 150;
 
     let player = { x: 1500, y: 1500, size: 30, speed: 7 };
     let joystick = { active: false, bx: 0, by: 0, cx: 0, cy: 0 };
@@ -49,7 +49,6 @@
     canvas.addEventListener('touchend', () => joystick.active = false);
 
     function loop() {
-        // Hareket Kontrolü
         if (joystick.active) {
             let dx = joystick.cx - joystick.bx;
             let dy = joystick.cy - joystick.by;
@@ -61,68 +60,62 @@
             }
         }
 
-        // Sınırlar
         player.x = Math.max(WALL, Math.min(WORLD.width - WALL, player.x));
         player.y = Math.max(WALL, Math.min(WORLD.height - WALL, player.y));
 
-        ctx.fillStyle = '#000';
+        // Ekranı temizle
+        ctx.fillStyle = '#f0f0f0';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // --- ANA OYUN EKRANI (KAMERA) ---
         ctx.save();
         ctx.translate(canvas.width/2 - player.x, canvas.height/2 - player.y);
 
-        // Zemin
-        ctx.fillStyle = '#111';
+        // Beyaz Zemin
+        ctx.fillStyle = '#ffffff'; 
         ctx.fillRect(0, 0, WORLD.width, WORLD.height);
         
-        // Izgara
-        ctx.strokeStyle = '#222';
-        for(let i=0; i<=WORLD.width; i+=200) {
+        // Hafif Gri Izgara
+        ctx.strokeStyle = '#e0e0e0';
+        ctx.lineWidth = 1;
+        for(let i=0; i<=WORLD.width; i+=150) {
             ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, WORLD.height); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(WORLD.width, i); ctx.stroke();
         }
 
-        // Kırmızı Duvarlar
-        ctx.fillStyle = 'red';
-        ctx.fillRect(0, 0, WORLD.width, WALL); // Üst
-        ctx.fillRect(0, WORLD.height - WALL, WORLD.width, WALL); // Alt
-        ctx.fillRect(0, 0, WALL, WORLD.height); // Sol
-        ctx.fillRect(WORLD.width - WALL, 0, WALL, WORLD.height); // Sağ
+        // Kırmızı Sınır Duvarları
+        ctx.fillStyle = '#ff4d4d';
+        ctx.fillRect(0, 0, WORLD.width, WALL);
+        ctx.fillRect(0, WORLD.height - WALL, WORLD.width, WALL);
+        ctx.fillRect(0, 0, WALL, WORLD.height);
+        ctx.fillRect(WORLD.width - WALL, 0, WALL, WORLD.height);
 
-        // Oyuncu
-        ctx.fillStyle = 'lime';
+        // Oyuncu (Beyazda en iyi mavi/mor veya yeşil görünür)
+        ctx.fillStyle = '#2ecc71'; // Canlı Yeşil
         ctx.fillRect(player.x - 15, player.y - 15, 30, 30);
+
         ctx.restore();
 
-        // --- MINI HARİTA (Sağ Üst Köşe) ---
+        // Mini Harita Tasarımı (Beyaza uygun)
         const mmX = canvas.width - MINIMAP_SIZE - 20;
         const mmY = 20;
-        
-        // Mini Harita Arka Planı
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.lineWidth = 2;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.strokeStyle = '#ccc';
         ctx.fillRect(mmX, mmY, MINIMAP_SIZE, MINIMAP_SIZE);
         ctx.strokeRect(mmX, mmY, MINIMAP_SIZE, MINIMAP_SIZE);
 
-        // Mini Haritada Oyuncu (Sen)
         let playerMMX = mmX + (player.x / WORLD.width) * MINIMAP_SIZE;
         let playerMMY = mmY + (player.y / WORLD.height) * MINIMAP_SIZE;
-        
-        ctx.fillStyle = 'lime';
-        ctx.beginPath();
-        ctx.arc(playerMMX, playerMMY, 3, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle = '#2ecc71';
+        ctx.beginPath(); ctx.arc(playerMMX, playerMMY, 4, 0, Math.PI * 2); ctx.fill();
 
-        // --- JOYSTICK GÖRSELİ ---
+        // Joystick
         if (joystick.active) {
             ctx.beginPath();
             ctx.arc(joystick.bx, joystick.by, 50, 0, Math.PI*2);
-            ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.stroke();
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.1)"; ctx.stroke();
             ctx.beginPath();
             ctx.arc(joystick.cx, joystick.cy, 25, 0, Math.PI*2);
-            ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.fill();
+            ctx.fillStyle = "rgba(0, 0, 0, 0.15)"; ctx.fill();
         }
 
         requestAnimationFrame(loop);
