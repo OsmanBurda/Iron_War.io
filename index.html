@@ -2,15 +2,15 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron_War.io - Kamera Takibi</title>
+    <title>Iron_War.io - Mini Harita</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; }
         canvas { display: block; }
-        #ui { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; }
+        #ui { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; text-shadow: 1px 1px 2px black; }
     </style>
 </head>
 <body>
-<div id="ui">Can: <span id="livesText">3</span></div>
+<div id="ui">Can: 3</div>
 <canvas id="game"></canvas>
 
 <script>
@@ -26,7 +26,9 @@
 
     const WORLD = { width: 3000, height: 3000 };
     const WALL = 25;
-    let player = { x: 1500, y: 1500, size: 30, speed: 7, lives: 3 };
+    const MINIMAP_SIZE = 150; // Sağ üstteki haritanın boyutu
+
+    let player = { x: 1500, y: 1500, size: 30, speed: 7 };
     let joystick = { active: false, bx: 0, by: 0, cx: 0, cy: 0 };
 
     canvas.addEventListener('touchstart', e => {
@@ -47,7 +49,7 @@
     canvas.addEventListener('touchend', () => joystick.active = false);
 
     function loop() {
-        // Hareket Mantığı
+        // Hareket Kontrolü
         if (joystick.active) {
             let dx = joystick.cx - joystick.bx;
             let dy = joystick.cy - joystick.by;
@@ -59,25 +61,24 @@
             }
         }
 
-        // Duvar Sınırları (Kırmızı Duvar İçin)
-        if (player.x < WALL) player.x = WALL;
-        if (player.y < WALL) player.y = WALL;
-        if (player.x > WORLD.width - WALL) player.x = WORLD.width - WALL;
-        if (player.y > WORLD.height - WALL) player.y = WORLD.height - WALL;
+        // Sınırlar
+        player.x = Math.max(WALL, Math.min(WORLD.width - WALL, player.x));
+        player.y = Math.max(WALL, Math.min(WORLD.height - WALL, player.y));
 
-        // Çizim
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // KAMERA SİSTEMİ: Dünyayı oyuncunun tersine kaydırır, oyuncu hep merkezde kalır
+        // --- ANA OYUN EKRANI (KAMERA) ---
         ctx.save();
         ctx.translate(canvas.width/2 - player.x, canvas.height/2 - player.y);
 
-        // Zemin ve Izgara
+        // Zemin
         ctx.fillStyle = '#111';
         ctx.fillRect(0, 0, WORLD.width, WORLD.height);
+        
+        // Izgara
         ctx.strokeStyle = '#222';
-        for(let i=0; i<=WORLD.width; i+=100) {
+        for(let i=0; i<=WORLD.width; i+=200) {
             ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, WORLD.height); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(WORLD.width, i); ctx.stroke();
         }
@@ -91,13 +92,30 @@
 
         // Oyuncu
         ctx.fillStyle = 'lime';
-        ctx.shadowBlur = 15; ctx.shadowColor = 'lime';
         ctx.fillRect(player.x - 15, player.y - 15, 30, 30);
-        ctx.shadowBlur = 0;
-
         ctx.restore();
 
-        // Joystick Görseli (Statik, kameradan etkilenmez)
+        // --- MINI HARİTA (Sağ Üst Köşe) ---
+        const mmX = canvas.width - MINIMAP_SIZE - 20;
+        const mmY = 20;
+        
+        // Mini Harita Arka Planı
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.fillRect(mmX, mmY, MINIMAP_SIZE, MINIMAP_SIZE);
+        ctx.strokeRect(mmX, mmY, MINIMAP_SIZE, MINIMAP_SIZE);
+
+        // Mini Haritada Oyuncu (Sen)
+        let playerMMX = mmX + (player.x / WORLD.width) * MINIMAP_SIZE;
+        let playerMMY = mmY + (player.y / WORLD.height) * MINIMAP_SIZE;
+        
+        ctx.fillStyle = 'lime';
+        ctx.beginPath();
+        ctx.arc(playerMMX, playerMMY, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // --- JOYSTICK GÖRSELİ ---
         if (joystick.active) {
             ctx.beginPath();
             ctx.arc(joystick.bx, joystick.by, 50, 0, Math.PI*2);
