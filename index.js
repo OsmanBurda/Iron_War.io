@@ -4,12 +4,17 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const path = require('path');
 
-app.use(express.static(__dirname));
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+// Dosyaların yerini garantiye alalım
+const publicPath = path.join(__dirname);
+app.use(express.static(publicPath));
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(publicPath, 'index.html'));
+});
 
 io.on('connection', (socket) => {
     console.log('Oyuncu bağlandı: ' + socket.id);
 });
 
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => console.log('Beyaz tema sunucusu hazır!'));
+http.listen(PORT, () => console.log('Sunucu ' + PORT + ' portunda bembeyaz!'));
