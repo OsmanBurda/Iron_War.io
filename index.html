@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron_War.io - El Clasico</title>
+    <title>Iron_War.io - El Clasico Fix</title>
     <style>
         body { margin: 0; overflow: hidden; background: #fff; touch-action: none; font-family: sans-serif; }
         canvas { display: block; z-index: 1; }
@@ -15,8 +15,7 @@
         #menuBox { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center; width: 85%; max-width: 400px; }
         input { padding: 12px; width: 90%; margin-bottom: 15px; border: 2px solid #3498db; border-radius: 8px; text-align: center; font-size: 16px; }
         
-        .costume-title { font-weight: bold; margin-bottom: 10px; color: #333; }
-        .costume-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .costume-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
         .costume-btn {
             width: 75px; height: 75px; border-radius: 12px; border: 4px solid #eee;
             background-size: cover; background-position: center; cursor: pointer; transition: 0.2s;
@@ -44,7 +43,6 @@
             <h2>Iron_War.io</h2>
             <input type="text" id="pName" value="Osman" maxlength="12">
             
-            <div class="costume-title">Kostüm Seç:</div>
             <div class="costume-container">
                 <div class="costume-btn selected" 
                      style="background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0NPrkQ7yE9Z08S5XkG9D9Q9J-uG8n7f-GgA&s')" 
@@ -74,10 +72,10 @@
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
     let myName = "Osman";
-    let myLink = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0NPrkQ7yE9Z08S5XkG9D9Q9J-uG8n7f-GgA&s";
+    let myLink = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0NPrkQ7yE9Z08S5XkG9D9Q9J-uG8n7f-GgA&s"; // Ronaldo varsayılan
     let playing = false;
-    let pImg = new Image();
-    let otherImgs = {};
+    let myHeroImg = new Image(); 
+    let otherHeros = {}; // Diğer oyuncuların resimlerini burada depolayacağız
 
     document.querySelectorAll('.costume-btn').forEach(b => {
         b.onclick = () => {
@@ -89,7 +87,7 @@
 
     document.getElementById('playBtn').onclick = () => {
         myName = document.getElementById('pName').value || "Osman";
-        pImg.src = myLink;
+        myHeroImg.src = myLink;
         socket.emit('startGame', { name: myName, color: myLink });
         document.getElementById('menuOverlay').style.display = 'none';
         document.getElementById('joy-bg').style.display = 'block';
@@ -100,10 +98,17 @@
     let others = {};
     let joy = { active: false, dx: 0, dy: 0 };
 
-    socket.on('currentPlayers', p => { Object.keys(p).forEach(id => { if(id!==socket.id) others[id]=p[id]; })});
+    socket.on('currentPlayers', p => { 
+        Object.keys(p).forEach(id => { 
+            if(id !== socket.id) others[id] = p[id]; 
+        });
+    });
+    
     socket.on('playerMoved', p => others[p.id] = p);
     socket.on('updatePlayerInfo', p => others[p.id] = p);
+    socket.on('playerDisconnected', id => delete others[id]);
 
+    // MAVİ JOYSTICK KONTROLLERİ
     const jBg = document.getElementById('joy-bg');
     const jTh = document.getElementById('joy-thumb');
     jBg.ontouchstart = e => { joy.active = true; moveJoy(e.touches[0]); };
@@ -130,16 +135,35 @@
         ctx.save();
         ctx.translate(canvas.width/2 - pos.x, canvas.height/2 - pos.y);
         
-        // DİĞER OYUNCULAR
+        // IZGARA
+        ctx.strokeStyle = '#eee';
+        for(let i=0; i<=3000; i+=100) {
+            ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,3000); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(3000,i); ctx.stroke();
+        }
+
+        // DİĞER OYUNCULARI ÇİZ (Kendi kostümleriyle)
         Object.values(others).forEach(p => {
-            if(!otherImgs[p.color]) { otherImgs[p.color] = new Image(); otherImgs[p.color].src = p.color; }
-            if(otherImgs[p.color].complete) ctx.drawImage(otherImgs[p.color], p.x-25, p.y-25, 50, 50);
-            ctx.fillStyle = "black"; ctx.fillText(p.name, p.x, p.y-35);
+            // Eğer bu oyuncunun resmi henüz yüklenmediyse yükle
+            if(!otherHeros[p.id] || otherHeros[p.id].url !== p.color) {
+                let img = new Image();
+                img.src = p.color;
+                otherHeros[p.id] = { img: img, url: p.color };
+            }
+            
+            if(otherHeros[p.id].img.complete) {
+                ctx.drawImage(otherHeros[p.id].img, p.x-25, p.y-25, 50, 50);
+            }
+            ctx.fillStyle = "black"; ctx.textAlign = "center";
+            ctx.fillText(p.name, p.x, p.y-35);
         });
 
-        // KENDİN (SEÇTİĞİN KOSTÜM)
-        if(pImg.complete) ctx.drawImage(pImg, pos.x-25, pos.y-25, 50, 50);
-        ctx.fillStyle = "black"; ctx.textAlign = "center"; ctx.fillText(myName, pos.x, pos.y-35);
+        // KENDİNİ ÇİZ
+        if(myHeroImg.complete) {
+            ctx.drawImage(myHeroImg, pos.x-25, pos.y-25, 50, 50);
+        }
+        ctx.fillStyle = "black"; ctx.textAlign = "center"; ctx.font = "bold 14px Arial";
+        ctx.fillText(myName, pos.x, pos.y-35);
 
         ctx.restore();
         requestAnimationFrame(draw);
