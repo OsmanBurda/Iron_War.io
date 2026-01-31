@@ -1,45 +1,32 @@
+const express = require('express');
+const app = express();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
+
+// OSMAN'IN BÖLGE AYARLARI (Sunucu Tarafı)
 const MAP_SIZE = 10000;
 const CENTER = 5000;
 const ELMAS_RADIUS = 1200;
 const ALTIN_RADIUS = 3500;
 
-const imgA = {
-    para: new Image(),
-    disli: new Image(),
-    kasa: new Image()
-};
-imgA.para.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpjNy8OW8lhUhtntVy_-jPuOBWpyLxzXb-tr5NIwpvqg&s=10";
-imgA.disli.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgefH-j_ZZP5JOOMPZoGjRRxInLmLVHvM6kovKdjYgDw&s";
-imgA.kasa.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRl4BxM22-TpThY7qwhHN3wcJ-ddm5yhJgzcrw_-_knnA&s=10";
-
-function getTier(x, y) {
-    const dist = Math.hypot(x - CENTER, y - CENTER);
-    if (dist < ELMAS_RADIUS) return "E";
-    if (dist < ALTIN_RADIUS) return "A";
-    return "N";
+// Objeleri oluştururken hangi bölgede olduklarını sunucu hesaplar
+function getObjectTier(x, y) {
+    const dist = Math.sqrt(Math.pow(x - CENTER, 2) + Math.pow(y - CENTER, 2));
+    if (dist < ELMAS_RADIUS) return "E"; // Elmas Merkez
+    if (dist < ALTIN_RADIUS) return "A"; // Altın Orta
+    return "N"; // Normal Dış
 }
 
-// Çizim fonksiyonunun içindeki mantık:
-function drawObject(ctx, obj, camX, camY) {
-    const tier = getTier(obj.x, obj.y);
-    ctx.save();
+// Statik dosyaları (HTML, Resimler) istemciye sunar
+app.use(express.static(__dirname + '/public'));
 
-    if (tier === "A") {
-        if (obj.kind === "JEN") {
-            ctx.filter = "sepia(1) saturate(8) brightness(1.2) drop-shadow(0 0 10px gold)";
-        } else {
-            let img = imgA[obj.kind.toLowerCase()];
-            if(img && img.complete) {
-                ctx.drawImage(img, obj.x - camX, obj.y - camY, obj.size, obj.size);
-                ctx.restore();
-                return;
-            }
-        }
-    } else if (tier === "E") {
-        ctx.filter = "hue-rotate(180deg) brightness(1.5) drop-shadow(0 0 15px cyan)";
-    }
+io.on('connection', (socket) => {
+    console.log('Bir oyuncu bağlandı: ' + socket.id);
+    
+    // Oyuncu bilgilerini ve E-A-N bölgelerini buraya ekleyebilirsin
+});
 
-    // Normal veya Efektli Çizim
-    ctx.drawImage(imgN[obj.kind.toLowerCase()], obj.x - camX, obj.y - camY, obj.size, obj.size);
-    ctx.restore();
-}
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, () => {
+    console.log('Sunucu ' + PORT + ' portunda çalışıyor...');
+});
