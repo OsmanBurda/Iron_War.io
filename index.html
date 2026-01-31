@@ -70,10 +70,12 @@
     }
     draw();
 
-    // HAREKET KONTROLLERİ (PC ve MOBİL)
+    // HAREKET KONTROLLERİ (JOYSTICK SİSTEMİ GERİ GELDİ)
     const handleMove = (clientX, clientY) => {
-        myPos.x += (clientX - canvas.width/2) * 0.05;
-        myPos.y += (clientY - canvas.height/2) * 0.05;
+        const dx = clientX - canvas.width / 2;
+        const dy = clientY - canvas.height / 2;
+        myPos.x += dx * 0.05;
+        myPos.y += dy * 0.05;
     };
 
     window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY));
