@@ -8,7 +8,6 @@ app.use(express.static(__dirname));
 let players = {};
 
 io.on('connection', (socket) => {
-    // 10000x10000 haritanın tam ortasında (5000, 5000) doğuş
     players[socket.id] = { 
         x: 5000, y: 5000, id: socket.id, 
         name: "Osman", 
@@ -18,14 +17,6 @@ io.on('connection', (socket) => {
     };
     
     socket.emit('currentPlayers', players);
-
-    socket.on('startGame', (data) => {
-        if (players[socket.id]) {
-            players[socket.id].name = data.name;
-            players[socket.id].color = data.color;
-            io.emit('updatePlayerInfo', players[socket.id]);
-        }
-    });
 
     socket.on('playerMovement', (mv) => {
         if (players[socket.id]) {
@@ -45,5 +36,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, '0.0.0.0', () => {
-    console.log(`Sunucu 10000x10000 harita ve Radar ile hazır!`);
+    console.log("10K Harita ve Çeşitli Objeler Hazır!");
 });
