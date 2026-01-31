@@ -1,181 +1,137 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron_War.io - Çeşitli Objeler</title>
+    <title>Osman's War IO - EAN Map Edition</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #fff; touch-action: none; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background: #222; font-family: sans-serif; }
         canvas { display: block; }
-        #radar {
-            position: fixed; top: 15px; right: 15px;
-            width: 180px; height: 180px;
-            background: rgba(255, 255, 255, 0.9);
-            border: 4px solid #333; border-radius: 12px;
-            z-index: 1000; pointer-events: none;
-        }
-        #menuOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        #menuBox { background: white; padding: 25px; border-radius: 20px; text-align: center; border: 2px solid #3498db; }
-        .costume-btn { width: 70px; height: 70px; border-radius: 10px; border: 4px solid #eee; display: inline-block; cursor: pointer; background-size: cover; margin: 5px; }
-        .selected { border-color: #3498db; }
-        #joy-bg { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(52, 152, 219, 0.2); border: 2px solid #3498db; border-radius: 50%; display: none; }
-        #joy-thumb { position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; background: #3498db; border-radius: 50%; transform: translate(-50%, -50%); }
+        #radar { position: fixed; top: 10px; right: 10px; width: 180px; height: 180px; background: rgba(0,0,0,0.7); border: 2px solid #555; }
+        #ui { position: fixed; top: 10px; left: 10px; color: white; text-shadow: 2px 2px 2px black; }
     </style>
 </head>
 <body>
-    <div id="radar"><canvas id="radarCanvas" width="180" height="180"></canvas></div>
-    <div id="menuOverlay">
-        <div id="menuBox">
-            <h2>Iron_War.io</h2>
-            <input type="text" id="pName" value="Osman" style="padding:10px; margin-bottom:10px;">
-            <div id="costumes">
-                <div class="costume-btn selected" style="background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe_nMarGj4bTgbT3erB8NoJGVamlFJFQf5KNAuWOvfnQ&s=10')" data-url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe_nMarGj4bTgbT3erB8NoJGVamlFJFQf5KNAuWOvfnQ&s=10"></div>
-            </div>
-            <button id="playBtn" style="padding:15px; background:#2ecc71; color:white; border:none; border-radius:10px; width:100%;">BAŞLA</button>
-        </div>
-    </div>
-    <div id="joy-bg"><div id="joy-thumb"></div></div>
-    <canvas id="game"></canvas>
 
-<script src="/socket.io/socket.io.js"></script>
+<div id="ui">
+    <div id="name">Oyuncu: Osman</div>
+    <div id="lives">Can: 3</div>
+    <div id="xp">XP: 0</div>
+    <div id="pos">Konum: 5000, 5000</div>
+</div>
+
+<div id="radar"><canvas id="radarCanvas" width="180" height="180"></canvas></div>
+<canvas id="gameCanvas"></canvas>
+
 <script>
-    const socket = io();
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');
-    const rCanvas = document.getElementById('radarCanvas');
-    const rCtx = rCanvas.getContext('2d');
-    
-    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-    const MAP_SIZE = 10000;
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const rCanvas = document.getElementById('radarCanvas');
+const rCtx = rCanvas.getContext('2d');
 
-    // OBJE GÖRSELLERİ
-    const imgs = {
-        PARA: new Image(), DISLI: new Image(), KASA: new Image(), REAKTOR: new Image()
-    };
-    imgs.PARA.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTSZrdG3VbXk3S0s6djB4bStf0FCrtMSrsRpZIeBOABCw&s=10";
-    imgs.DISLI.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTjMz_iTf0fFTJnYF1o74QIyN-uwtcJdjXroLO3E-nOeQ&s=10";
-    imgs.KASA.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQH1z7I0ITVS_zLX2bF2QyDQ7mIX1muO0uHM5dW0Cax5w&s=10";
-    imgs.REAKTOR.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnRzP-aybrn1BPFGuEuZKHKD1zzIq9QYL3vhkuuUNPZA&s=10";
+const MAP_SIZE = 10000;
+const CENTER = MAP_SIZE / 2;
+const ELMAS_RADIUS = 1200; // En içteki E bölgesi
+const ALTIN_RADIUS = 3500;  // Orta halka A bölgesi
+// Geri kalanı N bölgesi
 
-    const objTypes = {
-        PARA: { size: 50, hp: 1, xp: 40 },
-        DISLI: { size: 90, hp: 6, xp: 100 },
-        KASA: { size: 150, hp: 20, xp: 400 },
-        REAKTOR: { size: 350, hp: 80, xp: 2000 }
-    };
+let pos = { x: 5000, y: 5000 };
+let worldObjects = [];
 
-    let playing = false, myHeroImg = new Image(), others = {}, otherHeros = {}, xp = 0, level = 1, sawAngle = 0, sawCount = 1;
-    let pos = { x: 5000, y: 5000 }, joy = { dx: 0, dy: 0 };
-    let worldObjects = [];
+// --- GÖRSELLER ---
+// NORMAL (N) - Eskiler
+const imgN = { para: new Image(), disli: new Image(), kasa: new Image(), jen: new Image() };
+imgN.para.src = "ESKI_PARA_LINK"; // Buraya mevcut metal para linkini koy
+imgN.disli.src = "ESKI_TESTERE_LINK";
+imgN.kasa.src = "ESKI_KASA_LINK";
+imgN.jen.src = "ESKI_JEN_LINK";
 
-    // 3000 TANE KARIŞIK OBJE EKLEME
-    for(let i=0; i<3000; i++) spawnObj();
+// ALTIN (A) - Senin attığın linkler
+const imgA = { para: new Image(), disli: new Image(), kasa: new Image() };
+imgA.para.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpjNy8OW8lhUhtntVy_-jPuOBWpyLxzXb-tr5NIwpvqg&s=10";
+imgA.disli.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgefH-j_ZZP5JOOMPZoGjRRxInLmLVHvM6kovKdjYgDw&s";
+imgA.kasa.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRl4BxM22-TpThY7qwhHN3wcJ-ddm5yhJgzcrw_-_knnA&s=10";
 
-    function spawnObj() {
-        const types = ['PARA', 'PARA', 'DISLI', 'DISLI', 'KASA', 'REAKTOR']; // Para ve Dişli daha sık
-        let t = types[Math.floor(Math.random() * types.length)];
-        worldObjects.push({ 
-            id: Math.random(), x: Math.random()*(MAP_SIZE-400), y: Math.random()*(MAP_SIZE-400), 
-            type: t, hp: objTypes[t].hp 
-        });
-    }
-
-    function drawSaw(x, y, angle, size = 30) {
-        ctx.save(); ctx.translate(x, y); ctx.rotate(angle * 10);
-        ctx.beginPath(); ctx.fillStyle = "#95a5a6"; ctx.strokeStyle = "#7f8c8d"; ctx.lineWidth = 2;
-        for (let i = 0; i < 10; i++) {
-            let a = (i / 10) * Math.PI * 2;
-            ctx.lineTo(Math.cos(a) * size, Math.sin(a) * size);
-            ctx.lineTo(Math.cos(a+0.1)*(size+15), Math.sin(a+0.1)*(size+15));
-        }
-        ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
-    }
-
-    function updateRadar() {
-        rCtx.clearRect(0,0,180,180);
-        rCtx.strokeStyle = "#ddd"; rCtx.strokeRect(0,0,180,180);
-        rCtx.fillStyle = "#3498db";
-        rCtx.beginPath(); rCtx.arc((pos.x/MAP_SIZE)*180, (pos.y/MAP_SIZE)*180, 5, 0, Math.PI*2); rCtx.fill();
-    }
-
-    document.getElementById('playBtn').onclick = () => {
-        myHeroImg.src = document.querySelector('.selected').dataset.url;
-        socket.emit('startGame', { name: document.getElementById('pName').value, color: myHeroImg.src });
-        document.getElementById('menuOverlay').style.display = 'none';
-        document.getElementById('joy-bg').style.display = 'block';
-        playing = true;
-    };
-
-    socket.on('currentPlayers', p => others = p);
-    socket.on('playerMoved', p => others[p.id] = p);
-    socket.on('playerDisconnected', id => delete others[id]);
-
-    const jBg = document.getElementById('joy-bg'), jTh = document.getElementById('joy-thumb');
-    jBg.ontouchmove = e => {
-        let r = jBg.getBoundingClientRect(), t = e.touches[0];
-        let x = t.clientX - (r.left + 60), y = t.clientY - (r.top + 60), d = Math.sqrt(x*x+y*y);
-        if(d > 50) { x *= 50/d; y *= 50/d; }
-        jTh.style.left = (60+x)+'px'; jTh.style.top = (60+y)+'px';
-        joy.dx = x/50; joy.dy = y/50; e.preventDefault();
-    };
-    jBg.ontouchend = () => { joy.dx=0; joy.dy=0; jTh.style.left='50%'; jTh.style.top='50%'; };
-
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if(!playing) return requestAnimationFrame(draw);
-
-        pos.x += joy.dx * 11; pos.y += joy.dy * 11;
-        pos.x = Math.max(0, Math.min(MAP_SIZE, pos.x)); pos.y = Math.max(0, Math.min(MAP_SIZE, pos.y));
-        sawAngle += 0.02;
-        socket.emit('playerMovement', { x: pos.x, y: pos.y, sawAngle: sawAngle, sawCount: sawCount });
-
-        updateRadar();
-
-        ctx.save();
-        ctx.translate(canvas.width/2 - pos.x, canvas.height/2 - pos.y);
+// --- HARİTA OLUŞTURMA ---
+function spawnWorld() {
+    for(let i=0; i<3000; i++) {
+        let rx = Math.random() * MAP_SIZE;
+        let ry = Math.random() * MAP_SIZE;
+        let dist = Math.hypot(rx - CENTER, ry - CENTER);
         
-        ctx.strokeStyle = '#f5f5f5'; ctx.lineWidth = 2;
-        for(let i=0; i<=MAP_SIZE; i+=250) {
-            ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,MAP_SIZE); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(MAP_SIZE,i); ctx.stroke();
-        }
-        ctx.strokeStyle = "red"; ctx.lineWidth = 40; ctx.strokeRect(0,0,MAP_SIZE,MAP_SIZE);
+        let tier = "N";
+        if(dist < ELMAS_RADIUS) tier = "E";
+        else if(dist < ALTIN_RADIUS) tier = "A";
 
-        // ÇEŞİTLİ OBJELERİ ÇİZ
-        worldObjects.forEach((obj, idx) => {
-            let info = objTypes[obj.type];
-            if(imgs[obj.type].complete) ctx.drawImage(imgs[obj.type], obj.x, obj.y, info.size, info.size);
-            
-            for(let i=0; i<sawCount; i++) {
-                let a = sawAngle + (i*Math.PI*2/sawCount);
-                let sx = pos.x + Math.cos(a)*120, sy = pos.y + Math.sin(a)*120;
-                if(Math.hypot(sx-(obj.x+info.size/2), sy-(obj.y+info.size/2)) < info.size/2 + 35) {
-                    obj.hp -= 0.8;
-                    if(obj.hp <= 0) { 
-                        xp += info.xp; worldObjects.splice(idx, 1); spawnObj(); 
-                        if(xp >= level*600){ level++; xp=0; if(level%2===0)sawCount++; }
-                    }
-                }
-            }
-        });
+        const r = Math.random();
+        let kind = "PARA";
+        if(r > 0.96) kind = "JEN";
+        else if(r > 0.90) kind = "KASA";
+        else if(r > 0.75) kind = "DISLI";
 
-        // OYUNCULAR
-        Object.values(others).forEach(p => {
-            if(p.id !== socket.id) {
-                if(!otherHeros[p.id]) { otherHeros[p.id] = new Image(); otherHeros[p.id].src = p.color; }
-                if(otherHeros[p.id].complete) ctx.drawImage(otherHeros[p.id], p.x-40, p.y-40, 80, 80);
-                for(let i=0; i<p.sawCount; i++) drawSaw(p.x + Math.cos(p.sawAngle + i*Math.PI*2/p.sawCount)*120, p.y + Math.sin(p.sawAngle + i*Math.PI*2/p.sawCount)*120, p.sawAngle);
-            }
-        });
-
-        for(let i=0; i<sawCount; i++) drawSaw(pos.x + Math.cos(sawAngle + i*Math.PI*2/sawCount)*120, pos.y + Math.sin(sawAngle + i*Math.PI*2/sawCount)*120, sawAngle);
-        if(myHeroImg.complete) ctx.drawImage(myHeroImg, pos.x-40, pos.y-40, 80, 80);
-
-        ctx.restore();
-        ctx.fillStyle="black"; ctx.font="bold 24px Arial"; ctx.fillText(`LVL: ${level} | XP: ${xp}`, 30, 50);
-        requestAnimationFrame(draw);
+        worldObjects.push({ x: rx, y: ry, kind: kind, tier: tier, id: i });
     }
-    draw();
+}
+
+// --- ÇİZİM ---
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let camX = pos.x - canvas.width / 2;
+    let camY = pos.y - canvas.height / 2;
+
+    worldObjects.forEach(obj => {
+        let img;
+        ctx.save();
+        
+        if(obj.tier === "A") {
+            // ALTIN BÖLGESİ
+            if(obj.kind === "JEN") {
+                ctx.filter = "sepia(1) saturate(10) brightness(1.2) drop-shadow(0 0 15px gold)";
+                img = imgN.jen;
+            } else {
+                img = imgA[obj.kind.toLowerCase()];
+            }
+        } else if(obj.tier === "E") {
+            // ELMAS BÖLGESİ (Mavi Efekt)
+            ctx.filter = "hue-rotate(180deg) brightness(1.5) drop-shadow(0 0 20px cyan)";
+            img = imgN[obj.kind.toLowerCase()];
+        } else {
+            // NORMAL BÖLGE
+            img = imgN[obj.kind.toLowerCase()];
+        }
+
+        let size = obj.kind === "JEN" ? 350 : (obj.kind === "KASA" ? 150 : 80);
+        if(img && img.complete) {
+            ctx.drawImage(img, obj.x - camX, obj.y - camY, size, size);
+        }
+        ctx.restore();
+    });
+
+    updateRadar();
+    requestAnimationFrame(draw);
+}
+
+function updateRadar() {
+    rCtx.clearRect(0,0,180,180);
+    // Bölgeleri radarda göster
+    rCtx.fillStyle = "rgba(0, 255, 255, 0.2)"; // Elmas (Merkez)
+    rCtx.beginPath(); rCtx.arc(90, 90, (ELMAS_RADIUS/MAP_SIZE)*180, 0, Math.PI*2); rCtx.fill();
+    
+    rCtx.strokeStyle = "gold"; // Altın Sınırı
+    rCtx.beginPath(); rCtx.arc(90, 90, (ALTIN_RADIUS/MAP_SIZE)*180, 0, Math.PI*2); rCtx.stroke();
+
+    // Senin yerin
+    rCtx.fillStyle = "white";
+    rCtx.fillRect((pos.x/MAP_SIZE)*180 - 2, (pos.y/MAP_SIZE)*180 - 2, 4, 4);
+}
+
+window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+spawnWorld();
+draw();
 </script>
 </body>
 </html>
