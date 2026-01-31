@@ -3,28 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron_War.io - Yeni Nesil</title>
+    <title>Iron_War.io - Radar Mode</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #fff; touch-action: none; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background: #fff; touch-action: none; font-family: Arial, sans-serif; }
         canvas { display: block; }
+        
+        /* RADAR / MINI-MAP STİLİ */
+        #radar {
+            position: fixed; top: 20px; right: 20px;
+            width: 150px; height: 150px;
+            background: rgba(0, 0, 0, 0.1);
+            border: 3px solid #2c3e50; border-radius: 10px;
+            z-index: 100; pointer-events: none;
+        }
+
         #menuOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        #menuBox { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; width: 85%; max-width: 400px; border: 1px solid #ddd; }
-        .costume-btn { width: 80px; height: 80px; border-radius: 12px; border: 4px solid #eee; background-size: cover; display: inline-block; cursor: pointer; }
-        .selected { border-color: #3498db; }
-        #joy-bg { position: absolute; bottom: 40px; left: 40px; width: 100px; height: 100px; background: rgba(52, 152, 219, 0.2); border: 2px solid #3498db; border-radius: 50%; display: none; }
-        #joy-thumb { position: absolute; top: 50%; left: 50%; width: 40px; height: 40px; background: #3498db; border-radius: 50%; transform: translate(-50%, -50%); }
+        #menuBox { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); text-align: center; width: 80%; max-width: 350px; border: 2px solid #3498db; }
+        .costume-btn { width: 70px; height: 70px; border-radius: 10px; border: 4px solid #eee; display: inline-block; cursor: pointer; background-size: cover; margin: 5px; }
+        .selected { border-color: #3498db; transform: scale(1.05); }
+        #joy-bg { position: absolute; bottom: 40px; left: 40px; width: 110px; height: 110px; background: rgba(52, 152, 219, 0.2); border: 2px solid #3498db; border-radius: 50%; display: none; }
+        #joy-thumb { position: absolute; top: 50%; left: 50%; width: 45px; height: 45px; background: #3498db; border-radius: 50%; transform: translate(-50%, -50%); }
     </style>
 </head>
 <body>
+    <div id="radar"><canvas id="radarCanvas" width="150" height="150"></canvas></div>
+    
     <div id="menuOverlay">
         <div id="menuBox">
             <h2>Iron_War.io</h2>
-            <input type="text" id="pName" value="Osman" style="padding:10px; width:80%; margin-bottom:15px;">
+            <input type="text" id="pName" value="Osman" style="padding:12px; width:85%; margin-bottom:15px; border-radius:8px; border:1px solid #ccc;">
             <div id="costumes">
                 <div class="costume-btn selected" style="background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe_nMarGj4bTgbT3erB8NoJGVamlFJFQf5KNAuWOvfnQ&s=10')" data-url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe_nMarGj4bTgbT3erB8NoJGVamlFJFQf5KNAuWOvfnQ&s=10"></div>
                 <div class="costume-btn" style="background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcThtVj37-eOY-5h5XT35IgJIcakN0p5wb1AiVncibEUsw&s=10')" data-url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcThtVj37-eOY-5h5XT35IgJIcakN0p5wb1AiVncibEUsw&s=10"></div>
             </div>
-            <button id="playBtn" style="padding:15px; width:90%; background:#2ecc71; color:white; border:none; border-radius:10px; margin-top:15px;">BAŞLA!</button>
+            <button id="playBtn" style="padding:15px; width:100%; background:#2ecc71; color:white; border:none; border-radius:10px; font-weight:bold; margin-top:15px;">MAÇA BAŞLA</button>
         </div>
     </div>
     <div id="joy-bg"><div id="joy-thumb"></div></div>
@@ -35,58 +47,67 @@
     const socket = io();
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+    const rCanvas = document.getElementById('radarCanvas');
+    const rCtx = rCanvas.getContext('2d');
+    
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
+    const MAP_SIZE = 5000;
     const imgPara = new Image(); imgPara.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTSZrdG3VbXk3S0s6djB4bStf0FCrtMSrsRpZIeBOABCw&s=10";
     const imgDisli = new Image(); imgDisli.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTjMz_iTf0fFTJnYF1o74QIyN-uwtcJdjXroLO3E-nOeQ&s=10";
-    const imgKasa = new Image(); imgKasa.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQH1z7I0ITVS_zLX2bF2QyDQ7mIX1muO0uHM5dW0Cax5w&s=10";
-    const imgReaktor = new Image(); imgReaktor.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnRzP-aybrn1BPFGuEuZKHKD1zzIq9QYL3vhkuuUNPZA&s=10";
 
-    let myName = "Osman", myLink = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe_nMarGj4bTgbT3erB8NoJGVamlFJFQf5KNAuWOvfnQ&s=10";
+    let myName = "Osman", myLink = "";
     let playing = false, myHeroImg = new Image(), others = {}, otherHeros = {}, xp = 0, level = 1, sawAngle = 0, sawCount = 1;
-    let pos = { x: 1500, y: 1500 }, joy = { dx: 0, dy: 0 };
-
-    const objectTypes = {
-        PARA: { size: 50, hp: 1, xp: 30, img: imgPara },
-        DISLI: { size: 80, hp: 5, xp: 80, img: imgDisli },
-        KASA: { size: 130, hp: 15, xp: 250, img: imgKasa },
-        REAKTOR: { size: 280, hp: 50, xp: 1200, img: imgReaktor }
-    };
+    let pos = { x: 2500, y: 2500 }, joy = { dx: 0, dy: 0 };
 
     let worldObjects = [];
-    for(let i=0; i<300; i++) spawnObj(); // Eşyalar daha sık yapıldı
+    for(let i=0; i<400; i++) worldObjects.push({ id: Math.random(), x: Math.random()*(MAP_SIZE-200), y: Math.random()*(MAP_SIZE-200), hp: 5 });
 
-    function spawnObj() {
-        let t = Object.keys(objectTypes)[Math.floor(Math.random() * 4)];
-        worldObjects.push({ id: Math.random(), x: Math.random()*2900, y: Math.random()*2900, type: t, hp: objectTypes[t].hp });
+    function drawSaw(x, y, angle, size = 28) {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(angle * 9);
+        ctx.beginPath(); ctx.fillStyle = "#bdc3c7"; ctx.strokeStyle = "#7f8c8d"; ctx.lineWidth = 2;
+        for (let i = 0; i < 8; i++) {
+            let a = (i / 8) * Math.PI * 2;
+            ctx.lineTo(Math.cos(a) * size, Math.sin(a) * size);
+            ctx.lineTo(Math.cos(a+0.1)*(size+12), Math.sin(a+0.1)*(size+12));
+        }
+        ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
     }
 
-    // TESTERE ÇİZME FONKSİYONU (KOD İLE)
-    function drawProceduralSaw(x, y, angle, size = 25) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(angle * 10);
-        ctx.beginPath();
-        ctx.fillStyle = "#95a5a6";
-        ctx.strokeStyle = "#7f8c8d";
-        ctx.lineWidth = 2;
-        for (let i = 0; i < 12; i++) {
-            let a = (i / 12) * Math.PI * 2;
-            ctx.lineTo(Math.cos(a) * size, Math.sin(a) * size);
-            ctx.lineTo(Math.cos(a + 0.1) * (size + 10), Math.sin(a + 0.1) * (size + 10));
-        }
-        ctx.closePath(); ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.fillStyle = "#bdc3c7"; ctx.arc(0, 0, size/2, 0, Math.PI*2); ctx.fill();
-        ctx.restore();
+    // RADAR ÇİZİMİ
+    function updateRadar() {
+        rCtx.clearRect(0,0,150,150);
+        // Senin yerin (Mavi nokta)
+        rCtx.fillStyle = "#3498db";
+        rCtx.beginPath();
+        rCtx.arc((pos.x/MAP_SIZE)*150, (pos.y/MAP_SIZE)*150, 4, 0, Math.PI*2);
+        rCtx.fill();
+        // Diğer oyuncular (Kırmızı noktalar)
+        rCtx.fillStyle = "#e74c3c";
+        Object.values(others).forEach(p => {
+            if(p.id !== socket.id) {
+                rCtx.beginPath();
+                rCtx.arc((p.x/MAP_SIZE)*150, (p.y/MAP_SIZE)*150, 3, 0, Math.PI*2);
+                rCtx.fill();
+            }
+        });
     }
 
     document.getElementById('playBtn').onclick = () => {
+        myLink = document.querySelector('.selected').dataset.url;
         myHeroImg.src = myLink;
         socket.emit('startGame', { name: document.getElementById('pName').value, color: myLink });
         document.getElementById('menuOverlay').style.display = 'none';
         document.getElementById('joy-bg').style.display = 'block';
         playing = true;
     };
+
+    document.querySelectorAll('.costume-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.costume-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+    });
 
     socket.on('currentPlayers', p => others = p);
     socket.on('playerMoved', p => others[p.id] = p);
@@ -95,10 +116,10 @@
     const jBg = document.getElementById('joy-bg'), jTh = document.getElementById('joy-thumb');
     jBg.ontouchmove = e => {
         let r = jBg.getBoundingClientRect(), t = e.touches[0];
-        let x = t.clientX - (r.left + 50), y = t.clientY - (r.top + 50), d = Math.sqrt(x*x+y*y);
-        if(d > 40) { x *= 40/d; y *= 40/d; }
-        jTh.style.left = (50+x)+'px'; jTh.style.top = (50+y)+'px';
-        joy.dx = x/40; joy.dy = y/40; e.preventDefault();
+        let x = t.clientX - (r.left + 55), y = t.clientY - (r.top + 55), d = Math.sqrt(x*x+y*y);
+        if(d > 45) { x *= 45/d; y *= 45/d; }
+        jTh.style.left = (55+x)+'px'; jTh.style.top = (55+y)+'px';
+        joy.dx = x/45; joy.dy = y/45; e.preventDefault();
     };
     jBg.ontouchend = () => { joy.dx=0; joy.dy=0; jTh.style.left='50%'; jTh.style.top='50%'; };
 
@@ -106,61 +127,58 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if(!playing) return requestAnimationFrame(draw);
 
-        pos.x += joy.dx * 8; pos.y += joy.dy * 8;
-        pos.x = Math.max(0, Math.min(3000, pos.x)); pos.y = Math.max(0, Math.min(3000, pos.y));
-        sawAngle += 0.01;
+        pos.x += joy.dx * 8.5; pos.y += joy.dy * 8.5;
+        pos.x = Math.max(0, Math.min(MAP_SIZE, pos.x)); pos.y = Math.max(0, Math.min(MAP_SIZE, pos.y));
+        sawAngle += 0.02;
         socket.emit('playerMovement', { x: pos.x, y: pos.y, sawAngle: sawAngle, sawCount: sawCount });
+
+        updateRadar();
 
         ctx.save();
         ctx.translate(canvas.width/2 - pos.x, canvas.height/2 - pos.y);
         
-        // HARİTA IZGARA (Beyaz Arka Plan Üzerine Belirgin Çizgiler)
-        ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
-        for(let i=0; i<=3000; i+=100) {
-            ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,3000); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(3000,i); ctx.stroke();
+        // IZGARA VE SINIRLAR
+        ctx.strokeStyle = '#eee'; ctx.lineWidth = 2;
+        for(let i=0; i<=MAP_SIZE; i+=150) {
+            ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,MAP_SIZE); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(MAP_SIZE,i); ctx.stroke();
         }
+        ctx.strokeStyle = "red"; ctx.lineWidth = 15; ctx.strokeRect(0,0,MAP_SIZE,MAP_SIZE);
 
-        // METAL OBJELER
+        // EŞYALAR
         worldObjects.forEach((obj, idx) => {
-            let t = objectTypes[obj.type];
-            if(t.img.complete) ctx.drawImage(t.img, obj.x, obj.y, t.size, t.size);
-            
+            if(imgDisli.complete) ctx.drawImage(imgDisli, obj.x, obj.y, 80, 80);
             for(let i=0; i<sawCount; i++) {
                 let a = sawAngle + (i*Math.PI*2/sawCount);
-                let sx = pos.x + Math.cos(a)*100, sy = pos.y + Math.sin(a)*100;
-                if(Math.hypot(sx-(obj.x+t.size/2), sy-(obj.y+t.size/2)) < t.size/2+25) {
+                if(Math.hypot(pos.x + Math.cos(a)*105 - (obj.x+40), pos.y + Math.sin(a)*105 - (obj.y+40)) < 60) {
                     obj.hp -= 0.5;
-                    if(obj.hp <= 0) { xp += t.xp; worldObjects.splice(idx, 1); spawnObj(); if(xp>=level*350){level++; xp=0; if(level%2===0)sawCount++;}}
+                    if(obj.hp<=0) { xp+=50; worldObjects.splice(idx,1); worldObjects.push({id:Math.random(), x:Math.random()*4800, y:Math.random()*4800, hp:5}); if(xp>=level*400){level++; xp=0; if(level%2===0)sawCount++;}}
                 }
             }
         });
 
-        // DİĞER OYUNCULAR VE ONLARIN TESTERELERİ
+        // OYUNCULAR
         Object.values(others).forEach(p => {
-            if(p.id === socket.id) return;
-            if(!otherHeros[p.id]) { otherHeros[p.id] = new Image(); otherHeros[p.id].src = p.color; }
-            if(otherHeros[p.id].complete) ctx.drawImage(otherHeros[p.id], p.x-30, p.y-30, 60, 60);
-            ctx.fillStyle="black"; ctx.textAlign="center"; ctx.fillText(p.name, p.x, p.y-40);
-            // Onların testerelerini çiz:
-            for(let i=0; i<p.sawCount; i++){
-                let a = p.sawAngle + (i*Math.PI*2/p.sawCount);
-                drawProceduralSaw(p.x + Math.cos(a)*100, p.y + Math.sin(a)*100, p.sawAngle);
+            if(p.id !== socket.id) {
+                if(!otherHeros[p.id]) { otherHeros[p.id] = new Image(); otherHeros[p.id].src = p.color; }
+                if(otherHeros[p.id].complete) ctx.drawImage(otherHeros[p.id], p.x-35, p.y-35, 70, 70);
+                for(let i=0; i<p.sawCount; i++){
+                    let a = p.sawAngle + (i*Math.PI*2/p.sawCount);
+                    drawSaw(p.x + Math.cos(a)*105, p.y + Math.sin(a)*105, p.sawAngle);
+                }
             }
         });
 
-        // SENİN TESTERELERİN (KODLA ÇİZİLEN)
+        // SEN
         for(let i=0; i<sawCount; i++) {
             let a = sawAngle + (i*Math.PI*2/sawCount);
-            drawProceduralSaw(pos.x + Math.cos(a)*100, pos.y + Math.sin(a)*100, sawAngle);
+            drawSaw(pos.x + Math.cos(a)*105, pos.y + Math.sin(a)*105, sawAngle);
         }
-
-        // SENİN KARAKTERİN
-        if(myHeroImg.complete) ctx.drawImage(myHeroImg, pos.x-30, pos.y-30, 60, 60);
-        ctx.fillStyle="black"; ctx.textAlign="center"; ctx.font="bold 16px Arial"; ctx.fillText(document.getElementById('pName').value, pos.x, pos.y-40);
+        if(myHeroImg.complete) ctx.drawImage(myHeroImg, pos.x-35, pos.y-35, 70, 70);
+        ctx.fillStyle="black"; ctx.textAlign="center"; ctx.fillText(document.getElementById('pName').value, pos.x, pos.y-45);
 
         ctx.restore();
-        ctx.fillStyle="black"; ctx.font="bold 20px Arial"; ctx.fillText(`LEVEL: ${level} | XP: ${xp}`, 20, 40);
+        ctx.fillStyle="black"; ctx.font="bold 20px Arial"; ctx.fillText(`LVL: ${level} | XP: ${xp}`, 20, 40);
         requestAnimationFrame(draw);
     }
     draw();
