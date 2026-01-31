@@ -3,7 +3,7 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
-const MAP_SIZE = 10000; [cite: 2026-01-27]
+const MAP_SIZE = 10000;
 let players = {};
 
 app.use(express.static(__dirname));
@@ -33,16 +33,6 @@ io.on('connection', (socket) => {
             players[socket.id].x = data.x;
             players[socket.id].y = data.y;
             players[socket.id].angle = data.angle;
-            
-            // Eşya toplama kontrolü (Basit mesafe kontrolü)
-            worldObjects.forEach((obj, index) => {
-                let d = Math.sqrt(Math.pow(obj.x - data.x, 2) + Math.pow(obj.y - data.y, 2));
-                if (d < 40) {
-                    players[socket.id].score += 10;
-                    worldObjects.splice(index, 1);
-                    io.emit('objectCollected', { id: obj.id, playerId: socket.id });
-                }
-            });
         }
     });
 
@@ -51,5 +41,6 @@ io.on('connection', (socket) => {
 
 setInterval(() => { io.emit('update', players); }, 20);
 
-const PORT = process.env.PORT || 3000; [cite: 2026-01-26]
-http.listen(PORT, () => console.log("Iron War Hazir!"));
+// RENDER HATASINI ÇÖZEN PORT AYARI
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, '0.0.0.0', () => console.log(`Port ${PORT} acik.`));
