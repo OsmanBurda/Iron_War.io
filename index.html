@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Iron War IO</title>
+    <title>Iron War IO - Osman</title>
     <style>body { margin: 0; background: #1a1a1a; overflow: hidden; }</style>
 </head>
 <body>
@@ -12,61 +12,52 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // RESİM TANIMLAMALARI
     const images = {
+        E: {
+            para: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTbV8GQtIgmRxDnqXA5kHPhYBHFeLwV72jxHS0pNPV1w&s=10",
+            disli: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTZQotGVQJQ-Qn2RmgAP0NyDiPQRN1uqIjyJhdM-HtD4w&s",
+            kasa: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRHh9mqMQLNVAmijZA0IZCUM-YkCo0Ffv5lWSOs9SFVNA&s=10",
+            jen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRGVmLe_QhENqhc0hfzIRV_MYQuPSkK9GqsRbtcGGRHKQ&s=10"
+        },
         A: {
             para: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpjNy8OW8lhUhtntVy_-jPuOBWpyLxzXb-tr5NIwpvqg&s=10",
             disli: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgefH-j_ZZP5JOOMPZoGjRRxInLmLVHvM6kovKdjYgDw&s",
-            kasa: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRl4BxM22-TpThY7qwhHN3wcJ-ddm5yhJgzcrw_-_knnA&s=10"
+            kasa: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRl4BxM22-TpThY7qwhHN3wcJ-ddm5yhJgzcrw_-_knnA&s=10",
+            jen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxHYj-h1HNZYH3JnUeM-xT6Wps9LRjPrWdsLEMyk7W2g&s"
         },
-        N: { /* Buraya eski gri linklerini ekleyebilirsin */ }
+        N: {
+            jen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS2uR5SNOE4TEVlF0BPNz770a_hsLs1wMhi2Q_eVT5l8g&s=10"
+        }
     };
 
-    const loadedImages = {};
-    function preload() {
-        for (let tier in images) {
-            loadedImages[tier] = {};
-            for (let kind in images[tier]) {
-                const img = new Image();
-                img.src = images[tier][kind];
-                loadedImages[tier][kind] = img;
-            }
+    const loadedImgs = {};
+    for(let t in images) {
+        loadedImgs[t] = {};
+        for(let k in images[t]) {
+            let img = new Image();
+            img.src = images[t][k];
+            loadedImgs[t][k] = img;
         }
     }
-    preload();
 
     let worldObjects = [];
-    let myPos = { x: 5000, y: 5000 }; // Başlangıçta Elmas bölgesindesin (o yüzden her yer mavi)
+    let myPos = { x: 5000, y: 5000 };
 
     socket.on('init', (data) => { worldObjects = data.objects; });
 
     function draw() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
         const camX = myPos.x - canvas.width / 2;
         const camY = myPos.y - canvas.height / 2;
 
         worldObjects.forEach(obj => {
+            let img = (loadedImgs[obj.tier] && loadedImgs[obj.tier][obj.kind.toLowerCase()]);
             ctx.save();
-            let img = null;
-            if (loadedImages[obj.tier] && loadedImages[obj.tier][obj.kind.toLowerCase()]) {
-                img = loadedImages[obj.tier][obj.kind.toLowerCase()];
-            }
-
-            // E-A-N EFEKTLERİ
-            if (obj.tier === "E") {
-                ctx.filter = "hue-rotate(180deg) brightness(1.5) drop-shadow(0 0 10px cyan)";
-            } else if (obj.tier === "A") {
-                if (obj.kind === "JEN") ctx.filter = "sepia(1) saturate(8) brightness(1.2) drop-shadow(0 0 10px gold)";
-            }
-
-            // ÇİZİM: Resim varsa çiz, yoksa o parlayan kareyi çiz
             if (img && img.complete) {
                 ctx.drawImage(img, obj.x - camX, obj.y - camY, 80, 80);
             } else {
-                ctx.fillStyle = obj.tier === "E" ? "cyan" : (obj.tier === "A" ? "gold" : "gray");
+                ctx.fillStyle = obj.tier === "E" ? "#00ffff" : (obj.tier === "A" ? "#ffd700" : "#888");
                 ctx.fillRect(obj.x - camX, obj.y - camY, 40, 40);
             }
             ctx.restore();
@@ -75,7 +66,6 @@
     }
     draw();
 
-    // Hareket testi için: Fare nereye giderse oraya bak (Mavi bölgeden çıkmak için)
     window.addEventListener('mousemove', (e) => {
         myPos.x += (e.clientX - canvas.width/2) * 0.05;
         myPos.y += (e.clientY - canvas.height/2) * 0.05;
