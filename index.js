@@ -2,30 +2,12 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
-
-const MAP_SIZE = 10000;
-let players = {};
-
 app.use(express.static(__dirname));
-
-function createWorld() {
-    let objects = [];
-    for(let i = 0; i < 2000; i++) {
-        let rx = Math.random() * MAP_SIZE;
-        let ry = Math.random() * MAP_SIZE;
-        let dist = Math.sqrt(Math.pow(rx - 5000, 2) + Math.pow(ry - 5000, 2));
-        let tier = dist < 1500 ? "E" : (dist < 3800 ? "A" : "N");
-        let kind = Math.random() > 0.9 ? "JEN" : (Math.random() > 0.8 ? "KASA" : "PARA");
-        objects.push({ id: i, x: rx, y: ry, kind: kind, tier: tier });
-    }
-    return objects;
-}
-let worldObjects = createWorld();
-
+let players = {};
 io.on('connection', (socket) => {
     socket.on('join', (data) => {
-        players[socket.id] = { id: socket.id, x: 5000, y: 5000, name: data.name, xp: 0 };
-        socket.emit('init', { objects: worldObjects, id: socket.id });
+        players[socket.id] = { id: socket.id, x: 5000, y: 5000, name: data.name, xp: 0, level: 1 };
+        socket.emit('init', { id: socket.id });
     });
     socket.on('move', (data) => {
         if (players[socket.id]) {
@@ -36,8 +18,5 @@ io.on('connection', (socket) => {
     });
     socket.on('disconnect', () => { delete players[socket.id]; });
 });
-
 setInterval(() => { io.emit('update', players); }, 20);
-
-const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => { console.log('Savaş Başladı!'); });
+http.listen(process.env.PORT || 3000);
