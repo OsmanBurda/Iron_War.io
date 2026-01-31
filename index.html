@@ -1,25 +1,83 @@
-// ... (Önceki görsel ve setup kısımların aynı kalsın) ...
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body { margin: 0; overflow: hidden; background: #fff; touch-action: none; } [cite: 2026-01-28]
+        #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #joystick-base { position: absolute; bottom: 50px; left: 50px; width: 120px; height: 120px; background: rgba(0,0,0,0.1); border-radius: 50%; pointer-events: auto; }
+        #joystick-knob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: #333; border-radius: 50%; }
+    </style>
+</head>
+<body>
+    <canvas id="game"></canvas>
+    <div id="ui"><div id="joystick-base"><div id="joystick-knob"></div></div></div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        let myId, players = {}, bullets = [], myPos = {x:5000, y:5000}, mapSize = 10000, running = true;
+        let joy = { active: false, x: 0, y: 0, angle: 0 };
 
-socket.on('update', p => { 
-    players = p; 
-    // BURAYI BOŞ BIRAKTIK: Kendi konumumuzu sunucudan gelenle EZMİYORUZ. [cite: 2026-01-26]
-});
+        socket.on('init', d => { myId = d.id; mapSize = d.mapSize; });
+        socket.on('update', d => { 
+            players = d.players; bullets = d.bullets; 
+            // Geri atmayı engelleyen kilit: Kendi pozisyonumuzu serverdan eşitlemiyoruz [cite: 2026-01-26]
+        });
 
-function loop() {
-    // Joystick aktifse kendi konumumuzu güncelliyoruz (Yağ gibi akacak) [cite: 2026-01-26]
-    if(joy.active) {
-        myPos.x = Math.max(0, Math.min(mapSize, myPos.x + joy.x * 8));
-        myPos.y = Math.max(0, Math.min(mapSize, myPos.y + joy.y * 8));
-        socket.emit('move', { x: myPos.x, y: myPos.y, angle: joy.angle });
-    }
+        window.addEventListener('keydown', e => {
+            if(e.code === 'Space') socket.emit('shoot'); [cite: 2026-01-27]
+            if(e.key.toLowerCase() === 'b') socket.emit('special'); [cite: 2026-01-27]
+        });
 
-    // Çizim yaparken kendi karakterimiz için myPos kullanıyoruz [cite: 2026-01-26]
-    for(let id in players) {
-        let p = players[id];
-        let rX = (id === myId) ? myPos.x : p.x;
-        let rY = (id === myId) ? myPos.y : p.y;
-        
-        // Karakter çizimi rX ve rY üzerinden...
-    }
-    requestAnimationFrame(loop);
-}
+        function loop() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            if(joy.active) {
+                myPos.x = Math.max(0, Math.min(mapSize, myPos.x + joy.x * 8));
+                myPos.y = Math.max(0, Math.min(mapSize, myPos.y + joy.y * 8));
+                socket.emit('move', { x: myPos.x, y: myPos.y, angle: joy.angle });
+            }
+            const camX = myPos.x - canvas.width/2, camY = myPos.y - canvas.height/2;
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+
+            bullets.forEach(b => {
+                ctx.fillStyle = "black"; ctx.beginPath();
+                ctx.arc(b.x - camX, b.y - camY, 5, 0, 7); ctx.fill();
+            });
+
+            for(let id in players) {
+                let p = players[id];
+                let rX = (id === myId) ? myPos.x : p.x; [cite: 2026-01-26]
+                let rY = (id === myId) ? myPos.y : p.y; [cite: 2026-01-26]
+                ctx.save(); ctx.translate(rX - camX, rY - camY);
+                ctx.fillStyle = "black"; ctx.textAlign="center";
+                ctx.fillText(`${p.name} [HP:${p.hp}]`, 0, -35); [cite: 2026-01-27]
+                ctx.rotate(id === myId ? joy.angle : p.angle);
+                ctx.fillStyle = id === myId ? "blue" : "red";
+                ctx.beginPath(); ctx.arc(0,0,20,0,7); ctx.fill();
+                ctx.rotate(Date.now()*0.02); ctx.fillStyle="#888";
+                for(let i=0; i<6; i++) { ctx.rotate(Math.PI/3); ctx.fillRect(20, -3, 12, 6); }
+                ctx.restore();
+            }
+            requestAnimationFrame(loop);
+        }
+
+        const jBase = document.getElementById('joystick-base'), jKnob = document.getElementById('joystick-knob');
+        jBase.addEventListener('touchstart', e => { e.preventDefault(); joy.active = true; });
+        jBase.addEventListener('touchmove', e => {
+            e.preventDefault();
+            let t = e.touches[0], b = jBase.getBoundingClientRect();
+            let dx = t.clientX - (b.left + 60), dy = t.clientY - (b.top + 60);
+            let dist = Math.min(Math.sqrt(dx*dx + dy*dy), 45);
+            joy.angle = Math.atan2(dy, dx);
+            joy.x = Math.cos(joy.angle) * (dist/45); joy.y = Math.sin(joy.angle) * (dist/45);
+            jKnob.style.transform = `translate(${joy.x*35}px, ${joy.y*35}px)`;
+        }, {passive: false});
+        window.addEventListener('touchend', () => { joy.active = false; jKnob.style.transform = 'translate(0,0)'; });
+
+        socket.emit('join', { name: "Osman" });
+        loop();
+    </script>
+</body>
+</html>
