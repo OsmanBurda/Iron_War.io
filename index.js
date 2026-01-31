@@ -5,22 +5,27 @@ const io = require('socket.io')(http);
 
 const MAP_SIZE = 10000; [cite: 2026-01-27]
 let players = {};
-let bullets = [];
 
 app.use(express.static(__dirname));
 
+function createWorld() {
+    let objects = [];
+    for(let i = 0; i < 2500; i++) {
+        let rx = Math.random() * MAP_SIZE;
+        let ry = Math.random() * MAP_SIZE;
+        let dist = Math.sqrt(Math.pow(rx - 5000, 2) + Math.pow(ry - 5000, 2));
+        let tier = dist < 1500 ? "E" : (dist < 3800 ? "A" : "N");
+        let kind = Math.random() > 0.8 ? "JEN" : (Math.random() > 0.6 ? "KASA" : "PARA");
+        objects.push({ id: i, x: rx, y: ry, kind: kind, tier: tier });
+    }
+    return objects;
+}
+let worldObjects = createWorld();
+
 io.on('connection', (socket) => {
     socket.on('join', (data) => {
-        players[socket.id] = { 
-            id: socket.id, 
-            x: 5000, 
-            y: 5000, 
-            name: data.name || "Osman", 
-            angle: 0, 
-            hp: 3, [cite: 2026-01-27]
-            lastShoot: 0 
-        };
-        socket.emit('init', { id: socket.id, mapSize: MAP_SIZE });
+        players[socket.id] = { id: socket.id, x: 5000, y: 5000, name: data.name || "Osman", angle: 0 };
+        socket.emit('init', { objects: worldObjects, id: socket.id, mapSize: MAP_SIZE });
     });
 
     socket.on('move', (data) => {
@@ -31,37 +36,11 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('shoot', () => {
-        const p = players[socket.id];
-        const now = Date.now();
-        if (p && now - p.lastShoot > 1000) { [cite: 2026-01-27]
-            p.lastShoot = now;
-            // 4-Yönlü Ateş [cite: 2026-01-27]
-            [0, Math.PI/2, Math.PI, Math.PI*1.5].forEach(ang => {
-                bullets.push({ x: p.x, y: p.y, angle: ang, owner: socket.id, life: 100 });
-            });
-        }
-    });
-
-    socket.on('special', () => { [cite: 2026-01-27]
-        // 'b' tuşu özel gücü (Hafızadaki kalıcı ayar)
-    });
-
     socket.on('disconnect', () => { delete players[socket.id]; });
 });
 
-setInterval(() => {
-    bullets.forEach((b, i) => {
-        b.x += Math.cos(b.angle) * 15;
-        b.y += Math.sin(b.angle) * 15;
-        b.life--;
-        if(b.life <= 0) bullets.splice(i, 1);
-    });
-    io.emit('update', { players, bullets });
-}, 20);
+setInterval(() => { io.emit('update', players); }, 20);
 
-// Render için dinamik port ayarı
+// Render Port Ayarı
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
-    console.log(`Server ${PORT} portunda aktif.`);
-});
+http.listen(PORT, () => console.log("Server Hazır"));
