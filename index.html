@@ -3,30 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron_War.io - Radar Mode</title>
+    <title>Iron_War.io - MEGA MAP 10K</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #fff; touch-action: none; font-family: Arial, sans-serif; }
+        body { margin: 0; overflow: hidden; background: #fff; touch-action: none; font-family: sans-serif; }
         canvas { display: block; }
         
-        /* RADAR / MINI-MAP STİLİ */
+        /* RADAR - ASLA KALDIRILMAYACAK */
         #radar {
-            position: fixed; top: 20px; right: 20px;
-            width: 150px; height: 150px;
-            background: rgba(0, 0, 0, 0.1);
-            border: 3px solid #2c3e50; border-radius: 10px;
-            z-index: 100; pointer-events: none;
+            position: fixed; top: 15px; right: 15px;
+            width: 180px; height: 180px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 4px solid #333; border-radius: 12px;
+            z-index: 1000; pointer-events: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
         #menuOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        #menuBox { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); text-align: center; width: 80%; max-width: 350px; border: 2px solid #3498db; }
+        #menuBox { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); text-align: center; width: 85%; max-width: 350px; border: 2px solid #3498db; }
         .costume-btn { width: 70px; height: 70px; border-radius: 10px; border: 4px solid #eee; display: inline-block; cursor: pointer; background-size: cover; margin: 5px; }
-        .selected { border-color: #3498db; transform: scale(1.05); }
-        #joy-bg { position: absolute; bottom: 40px; left: 40px; width: 110px; height: 110px; background: rgba(52, 152, 219, 0.2); border: 2px solid #3498db; border-radius: 50%; display: none; }
-        #joy-thumb { position: absolute; top: 50%; left: 50%; width: 45px; height: 45px; background: #3498db; border-radius: 50%; transform: translate(-50%, -50%); }
+        .selected { border-color: #3498db; }
+        #joy-bg { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(52, 152, 219, 0.2); border: 2px solid #3498db; border-radius: 50%; display: none; }
+        #joy-thumb { position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; background: #3498db; border-radius: 50%; transform: translate(-50%, -50%); }
     </style>
 </head>
 <body>
-    <div id="radar"><canvas id="radarCanvas" width="150" height="150"></canvas></div>
+    <div id="radar"><canvas id="radarCanvas" width="180" height="180"></canvas></div>
     
     <div id="menuOverlay">
         <div id="menuBox">
@@ -52,42 +53,54 @@
     
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
-    const MAP_SIZE = 5000;
-    const imgPara = new Image(); imgPara.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTSZrdG3VbXk3S0s6djB4bStf0FCrtMSrsRpZIeBOABCw&s=10";
+    // YENİ BOYUT: 10000x10000
+    const MAP_SIZE = 10000;
     const imgDisli = new Image(); imgDisli.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTjMz_iTf0fFTJnYF1o74QIyN-uwtcJdjXroLO3E-nOeQ&s=10";
 
     let myName = "Osman", myLink = "";
     let playing = false, myHeroImg = new Image(), others = {}, otherHeros = {}, xp = 0, level = 1, sawAngle = 0, sawCount = 1;
-    let pos = { x: 2500, y: 2500 }, joy = { dx: 0, dy: 0 };
+    let pos = { x: 5000, y: 5000 }, joy = { dx: 0, dy: 0 };
 
+    // SIK EŞYA YOĞUNLUĞU: 2500 Tane
     let worldObjects = [];
-    for(let i=0; i<400; i++) worldObjects.push({ id: Math.random(), x: Math.random()*(MAP_SIZE-200), y: Math.random()*(MAP_SIZE-200), hp: 5 });
+    for(let i=0; i<2500; i++) spawnObj();
 
-    function drawSaw(x, y, angle, size = 28) {
-        ctx.save(); ctx.translate(x, y); ctx.rotate(angle * 9);
-        ctx.beginPath(); ctx.fillStyle = "#bdc3c7"; ctx.strokeStyle = "#7f8c8d"; ctx.lineWidth = 2;
-        for (let i = 0; i < 8; i++) {
-            let a = (i / 8) * Math.PI * 2;
+    function spawnObj() {
+        worldObjects.push({ 
+            id: Math.random(), 
+            x: Math.random()*(MAP_SIZE-200), 
+            y: Math.random()*(MAP_SIZE-200), 
+            hp: 8 
+        });
+    }
+
+    function drawSaw(x, y, angle, size = 30) {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(angle * 10);
+        ctx.beginPath(); ctx.fillStyle = "#95a5a6"; ctx.strokeStyle = "#7f8c8d"; ctx.lineWidth = 2;
+        for (let i = 0; i < 10; i++) {
+            let a = (i / 10) * Math.PI * 2;
             ctx.lineTo(Math.cos(a) * size, Math.sin(a) * size);
-            ctx.lineTo(Math.cos(a+0.1)*(size+12), Math.sin(a+0.1)*(size+12));
+            ctx.lineTo(Math.cos(a+0.1)*(size+15), Math.sin(a+0.1)*(size+15));
         }
         ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
     }
 
-    // RADAR ÇİZİMİ
+    // RADAR - TÜRKİYE HARİTASI MANTIĞI
     function updateRadar() {
-        rCtx.clearRect(0,0,150,150);
-        // Senin yerin (Mavi nokta)
+        rCtx.clearRect(0,0,180,180);
+        // Sınırlar
+        rCtx.strokeStyle = "#ccc"; rCtx.strokeRect(0,0,180,180);
+        // Senin yerin (Büyük Mavi Nokta)
         rCtx.fillStyle = "#3498db";
         rCtx.beginPath();
-        rCtx.arc((pos.x/MAP_SIZE)*150, (pos.y/MAP_SIZE)*150, 4, 0, Math.PI*2);
+        rCtx.arc((pos.x/MAP_SIZE)*180, (pos.y/MAP_SIZE)*180, 5, 0, Math.PI*2);
         rCtx.fill();
-        // Diğer oyuncular (Kırmızı noktalar)
+        // Diğer oyuncular (Kırmızı Noktalar)
         rCtx.fillStyle = "#e74c3c";
         Object.values(others).forEach(p => {
             if(p.id !== socket.id) {
                 rCtx.beginPath();
-                rCtx.arc((p.x/MAP_SIZE)*150, (p.y/MAP_SIZE)*150, 3, 0, Math.PI*2);
+                rCtx.arc((p.x/MAP_SIZE)*180, (p.y/MAP_SIZE)*180, 4, 0, Math.PI*2);
                 rCtx.fill();
             }
         });
@@ -102,13 +115,6 @@
         playing = true;
     };
 
-    document.querySelectorAll('.costume-btn').forEach(btn => {
-        btn.onclick = () => {
-            document.querySelectorAll('.costume-btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-        }
-    });
-
     socket.on('currentPlayers', p => others = p);
     socket.on('playerMoved', p => others[p.id] = p);
     socket.on('playerDisconnected', id => delete others[id]);
@@ -116,10 +122,10 @@
     const jBg = document.getElementById('joy-bg'), jTh = document.getElementById('joy-thumb');
     jBg.ontouchmove = e => {
         let r = jBg.getBoundingClientRect(), t = e.touches[0];
-        let x = t.clientX - (r.left + 55), y = t.clientY - (r.top + 55), d = Math.sqrt(x*x+y*y);
-        if(d > 45) { x *= 45/d; y *= 45/d; }
-        jTh.style.left = (55+x)+'px'; jTh.style.top = (55+y)+'px';
-        joy.dx = x/45; joy.dy = y/45; e.preventDefault();
+        let x = t.clientX - (r.left + 60), y = t.clientY - (r.top + 60), d = Math.sqrt(x*x+y*y);
+        if(d > 50) { x *= 50/d; y *= 50/d; }
+        jTh.style.left = (60+x)+'px'; jTh.style.top = (60+y)+'px';
+        joy.dx = x/50; joy.dy = y/50; e.preventDefault();
     };
     jBg.ontouchend = () => { joy.dx=0; joy.dy=0; jTh.style.left='50%'; jTh.style.top='50%'; };
 
@@ -127,7 +133,7 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if(!playing) return requestAnimationFrame(draw);
 
-        pos.x += joy.dx * 8.5; pos.y += joy.dy * 8.5;
+        pos.x += joy.dx * 10; pos.y += joy.dy * 10; // Hız biraz artırıldı
         pos.x = Math.max(0, Math.min(MAP_SIZE, pos.x)); pos.y = Math.max(0, Math.min(MAP_SIZE, pos.y));
         sawAngle += 0.02;
         socket.emit('playerMovement', { x: pos.x, y: pos.y, sawAngle: sawAngle, sawCount: sawCount });
@@ -137,22 +143,22 @@
         ctx.save();
         ctx.translate(canvas.width/2 - pos.x, canvas.height/2 - pos.y);
         
-        // IZGARA VE SINIRLAR
-        ctx.strokeStyle = '#eee'; ctx.lineWidth = 2;
-        for(let i=0; i<=MAP_SIZE; i+=150) {
+        // IZGARA
+        ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 2;
+        for(let i=0; i<=MAP_SIZE; i+=200) {
             ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,MAP_SIZE); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(MAP_SIZE,i); ctx.stroke();
         }
-        ctx.strokeStyle = "red"; ctx.lineWidth = 15; ctx.strokeRect(0,0,MAP_SIZE,MAP_SIZE);
+        ctx.strokeStyle = "#ff0000"; ctx.lineWidth = 30; ctx.strokeRect(0,0,MAP_SIZE,MAP_SIZE);
 
-        // EŞYALAR
+        // YOĞUN EŞYALAR
         worldObjects.forEach((obj, idx) => {
-            if(imgDisli.complete) ctx.drawImage(imgDisli, obj.x, obj.y, 80, 80);
+            if(imgDisli.complete) ctx.drawImage(imgDisli, obj.x, obj.y, 90, 90);
             for(let i=0; i<sawCount; i++) {
                 let a = sawAngle + (i*Math.PI*2/sawCount);
-                if(Math.hypot(pos.x + Math.cos(a)*105 - (obj.x+40), pos.y + Math.sin(a)*105 - (obj.y+40)) < 60) {
-                    obj.hp -= 0.5;
-                    if(obj.hp<=0) { xp+=50; worldObjects.splice(idx,1); worldObjects.push({id:Math.random(), x:Math.random()*4800, y:Math.random()*4800, hp:5}); if(xp>=level*400){level++; xp=0; if(level%2===0)sawCount++;}}
+                if(Math.hypot(pos.x + Math.cos(a)*115 - (obj.x+45), pos.y + Math.sin(a)*115 - (obj.y+45)) < 65) {
+                    obj.hp -= 0.7;
+                    if(obj.hp<=0) { xp+=60; worldObjects.splice(idx,1); spawnObj(); if(xp>=level*500){level++; xp=0; if(level%2===0)sawCount++;}}
                 }
             }
         });
@@ -161,10 +167,10 @@
         Object.values(others).forEach(p => {
             if(p.id !== socket.id) {
                 if(!otherHeros[p.id]) { otherHeros[p.id] = new Image(); otherHeros[p.id].src = p.color; }
-                if(otherHeros[p.id].complete) ctx.drawImage(otherHeros[p.id], p.x-35, p.y-35, 70, 70);
+                if(otherHeros[p.id].complete) ctx.drawImage(otherHeros[p.id], p.x-40, p.y-40, 80, 80);
                 for(let i=0; i<p.sawCount; i++){
                     let a = p.sawAngle + (i*Math.PI*2/p.sawCount);
-                    drawSaw(p.x + Math.cos(a)*105, p.y + Math.sin(a)*105, p.sawAngle);
+                    drawSaw(p.x + Math.cos(a)*115, p.y + Math.sin(a)*115, p.sawAngle);
                 }
             }
         });
@@ -172,13 +178,13 @@
         // SEN
         for(let i=0; i<sawCount; i++) {
             let a = sawAngle + (i*Math.PI*2/sawCount);
-            drawSaw(pos.x + Math.cos(a)*105, pos.y + Math.sin(a)*105, sawAngle);
+            drawSaw(pos.x + Math.cos(a)*115, pos.y + Math.sin(a)*115, sawAngle);
         }
-        if(myHeroImg.complete) ctx.drawImage(myHeroImg, pos.x-35, pos.y-35, 70, 70);
-        ctx.fillStyle="black"; ctx.textAlign="center"; ctx.fillText(document.getElementById('pName').value, pos.x, pos.y-45);
+        if(myHeroImg.complete) ctx.drawImage(myHeroImg, pos.x-40, pos.y-40, 80, 80);
+        ctx.fillStyle="black"; ctx.font="bold 16px Arial"; ctx.textAlign="center"; ctx.fillText(document.getElementById('pName').value, pos.x, pos.y-50);
 
         ctx.restore();
-        ctx.fillStyle="black"; ctx.font="bold 20px Arial"; ctx.fillText(`LVL: ${level} | XP: ${xp}`, 20, 40);
+        ctx.fillStyle="black"; ctx.font="bold 22px Arial"; ctx.fillText(`LVL: ${level} | XP: ${xp}`, 25, 45);
         requestAnimationFrame(draw);
     }
     draw();
