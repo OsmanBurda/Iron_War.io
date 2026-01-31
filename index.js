@@ -9,7 +9,7 @@ let players = {};
 
 io.on('connection', (socket) => {
     players[socket.id] = { 
-        x: 1500, y: 1500, id: socket.id, 
+        x: 2500, y: 2500, id: socket.id, 
         name: "Osman", 
         color: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe_nMarGj4bTgbT3erB8NoJGVamlFJFQf5KNAuWOvfnQ&s=10",
         sawAngle: 0,
@@ -42,8 +42,7 @@ io.on('connection', (socket) => {
     });
 });
 
-// Render için kritik düzeltme:
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, '0.0.0.0', () => {
-    console.log(`Sunucu ${PORT} portunda aktif.`);
+    console.log(`Sunucu ${PORT} üzerinde Radar açık!`);
 });
