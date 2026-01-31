@@ -3,29 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron_War.io - Metal Map Fixed</title>
+    <title>Iron_War.io - Kalabalık ve Beyaz</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #222; touch-action: none; font-family: sans-serif; }
+        /* Arka plan tekrar beyaz yapıldı */
+        body { margin: 0; overflow: hidden; background: #fff; touch-action: none; font-family: sans-serif; }
         canvas { display: block; }
-        #menuOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        #menuBox { background: white; padding: 25px; border-radius: 20px; text-align: center; width: 85%; max-width: 400px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        .costume-btn { width: 70px; height: 70px; border-radius: 10px; border: 3px solid #ccc; display: inline-block; cursor: pointer; background-size: cover; margin: 5px; }
-        .selected { border-color: #3498db; transform: scale(1.1); }
-        #playBtn { padding: 15px; background: #2ecc71; color: white; border: none; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 10px; }
-        #joy-bg { position: absolute; bottom: 40px; left: 40px; width: 100px; height: 100px; background: rgba(255,255,255,0.2); border: 2px solid #fff; border-radius: 50%; display: none; }
-        #joy-thumb { position: absolute; top: 50%; left: 50%; width: 40px; height: 40px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); }
+        #menuOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        #menuBox { background: white; padding: 25px; border-radius: 20px; text-align: center; width: 85%; max-width: 400px; box-shadow: 0 0 20px rgba(0,0,0,0.2); border: 1px solid #eee; }
+        input { padding: 12px; width: 85%; margin-bottom: 20px; border: 2px solid #3498db; border-radius: 8px; text-align: center; font-size: 18px; }
+        .costume-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
+        .costume-btn { width: 80px; height: 80px; border-radius: 12px; border: 4px solid #eee; background-size: cover; background-position: center; cursor: pointer; transition: 0.2s; }
+        .costume-btn.selected { border-color: #3498db; transform: scale(1.1); }
+        #playBtn { padding: 15px; background: #2ecc71; color: white; border: none; border-radius: 10px; width: 100%; font-weight: bold; font-size: 18px; cursor: pointer; }
+        #joy-bg { position: absolute; bottom: 40px; left: 40px; width: 110px; height: 110px; background: rgba(52, 152, 219, 0.2); border: 3px solid #3498db; border-radius: 50%; display: none; }
+        #joy-thumb { position: absolute; top: 50%; left: 50%; width: 45px; height: 45px; background: #2980b9; border-radius: 50%; transform: translate(-50%, -50%); }
     </style>
 </head>
 <body>
     <div id="menuOverlay">
         <div id="menuBox">
             <h2>Iron_War.io</h2>
-            <input type="text" id="pName" value="Osman" style="width:80%; padding:10px; margin-bottom:10px;">
-            <div id="costumes">
+            <input type="text" id="pName" value="Osman" maxlength="15">
+            <div class="costume-container">
                 <div class="costume-btn selected" style="background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe_nMarGj4bTgbT3erB8NoJGVamlFJFQf5KNAuWOvfnQ&s=10')" data-url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe_nMarGj4bTgbT3erB8NoJGVamlFJFQf5KNAuWOvfnQ&s=10"></div>
                 <div class="costume-btn" style="background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcThtVj37-eOY-5h5XT35IgJIcakN0p5wb1AiVncibEUsw&s=10')" data-url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcThtVj37-eOY-5h5XT35IgJIcakN0p5wb1AiVncibEUsw&s=10"></div>
             </div>
-            <button id="playBtn">BAŞLA</button>
+            <button id="playBtn">MAÇI BAŞLAT!</button>
         </div>
     </div>
     <div id="joy-bg"><div id="joy-thumb"></div></div>
@@ -45,18 +48,19 @@
     const imgSaw = new Image(); imgSaw.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTjMz_iTf0fFTJnYF1o74QIyN-uwtcJdjXroLO3E-nOeQ&s=10";
 
     let myName = "Osman", myLink = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe_nMarGj4bTgbT3erB8NoJGVamlFJFQf5KNAuWOvfnQ&s=10";
-    let playing = false, myHeroImg = new Image(), others = {}, xp = 0, level = 1, sawAngle = 0, sawCount = 1;
-    let pos = { x: 1500, y: 1500 }, joy = { dx: 0, dy: 0 };
+    let playing = false, myHeroImg = new Image(), otherHeros = {}, xp = 0, level = 1, sawAngle = 0, sawCount = 1;
+    let pos = { x: 1500, y: 1500 }, others = {}, joy = { dx: 0, dy: 0 };
 
     const objectTypes = {
-        PARA: { size: 50, hp: 1, xp: 30, img: imgPara },
-        DISLI: { size: 80, hp: 6, xp: 80, img: imgDisli },
-        KASA: { size: 130, hp: 18, xp: 250, img: imgKasa },
-        REAKTOR: { size: 250, hp: 60, xp: 1200, img: imgReaktor }
+        PARA: { size: 45, hp: 1, xp: 25, img: imgPara },
+        DISLI: { size: 75, hp: 5, xp: 70, img: imgDisli },
+        KASA: { size: 120, hp: 15, xp: 200, img: imgKasa },
+        REAKTOR: { size: 240, hp: 50, xp: 1000, img: imgReaktor }
     };
 
     let worldObjects = [];
-    for(let i=0; i<60; i++) spawnObj(); // Eşya sayısı artırıldı
+    // Eşya sayısı 60'tan 250'ye çıkarıldı!
+    for(let i=0; i<250; i++) spawnObj();
     function spawnObj() {
         let t = Object.keys(objectTypes)[Math.floor(Math.random() * 4)];
         worldObjects.push({ id: Math.random(), x: Math.random()*2900, y: Math.random()*2900, type: t, hp: objectTypes[t].hp });
@@ -71,8 +75,9 @@
     });
 
     document.getElementById('playBtn').onclick = () => {
+        myName = document.getElementById('pName').value || "Osman";
         myHeroImg.src = myLink;
-        socket.emit('startGame', { name: document.getElementById('pName').value, color: myLink });
+        socket.emit('startGame', { name: myName, color: myLink });
         document.getElementById('menuOverlay').style.display = 'none';
         document.getElementById('joy-bg').style.display = 'block';
         playing = true;
@@ -80,17 +85,20 @@
 
     socket.on('currentPlayers', p => { Object.keys(p).forEach(id => { if(id!==socket.id) others[id]=p[id]; })});
     socket.on('playerMoved', p => others[p.id] = p);
-    socket.on('playerDisconnected', id => delete others[id]);
+    socket.on('updatePlayerInfo', p => others[p.id] = p);
+    socket.on('playerDisconnected', id => { delete others[id]; delete otherHeros[id]; });
 
     const jBg = document.getElementById('joy-bg'), jTh = document.getElementById('joy-thumb');
-    jBg.ontouchmove = e => {
-        let r = jBg.getBoundingClientRect(), t = e.touches[0];
-        let x = t.clientX - (r.left + 50), y = t.clientY - (r.top + 50), d = Math.sqrt(x*x+y*y);
-        if(d > 40) { x *= 40/d; y *= 40/d; }
-        jTh.style.left = (50+x)+'px'; jTh.style.top = (50+y)+'px';
-        joy.dx = x/40; joy.dy = y/40; e.preventDefault();
-    };
-    jBg.ontouchend = () => { joy.dx=0; joy.dy=0; jTh.style.left='50%'; jTh.style.top='50%'; };
+    jBg.ontouchstart = e => moveJoy(e.touches[0]);
+    jBg.ontouchmove = e => { moveJoy(e.touches[0]); e.preventDefault(); };
+    jBg.ontouchend = () => { joy.dx = 0; joy.dy = 0; jTh.style.left='50%'; jTh.style.top='50%'; };
+
+    function moveJoy(t) {
+        let r = jBg.getBoundingClientRect(), x = t.clientX - (r.left + 55), y = t.clientY - (r.top + 55), d = Math.sqrt(x*x+y*y);
+        if(d > 45) { x *= 45/d; y *= 45/d; }
+        jTh.style.left = (55 + x) + 'px'; jTh.style.top = (55 + y) + 'px';
+        joy.dx = x/45; joy.dy = y/45;
+    }
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -103,18 +111,16 @@
         ctx.save();
         ctx.translate(canvas.width/2 - pos.x, canvas.height/2 - pos.y);
         
-        // KOYU HARİTA ZEMİNİ
-        ctx.fillStyle = "#333"; ctx.fillRect(0,0,3000,3000);
-        
-        // BELİRGİN IZGARA
-        ctx.strokeStyle = '#444'; ctx.lineWidth = 2;
+        // BEYAZ ARKA PLAN ÜZERİNE IZGARA
+        ctx.strokeStyle = '#ddd'; // Daha açık gri ızgara
+        ctx.lineWidth = 2;
         for(let i=0; i<=3000; i+=150) {
             ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,3000); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(3000,i); ctx.stroke();
         }
 
-        // SINIR ÇİZGİSİ
-        ctx.strokeStyle = "red"; ctx.lineWidth = 5; ctx.strokeRect(0,0,3000,3000);
+        // HARİTA SINIRLARI
+        ctx.strokeStyle = "#e74c3c"; ctx.lineWidth = 5; ctx.strokeRect(0,0,3000,3000);
 
         // METAL EŞYALAR
         worldObjects.forEach((obj, idx) => {
@@ -124,10 +130,15 @@
             sawAngle += 0.005;
             for(let i=0; i<sawCount; i++) {
                 let a = sawAngle + (i*Math.PI*2/sawCount);
-                let sx = pos.x + Math.cos(a)*100, sy = pos.y + Math.sin(a)*100;
+                let sx = pos.x + Math.cos(a)*95, sy = pos.y + Math.sin(a)*95;
                 if(Math.hypot(sx-(obj.x+t.size/2), sy-(obj.y+t.size/2)) < t.size/2+25) {
-                    obj.hp -= 0.4;
-                    if(obj.hp <= 0) { xp += t.xp; worldObjects.splice(idx, 1); spawnObj(); if(xp>=level*400){level++; xp=0; if(level%2===0)sawCount++;}}
+                    obj.hp -= 0.3;
+                    if(obj.hp <= 0) { 
+                        xp += t.xp; 
+                        worldObjects.splice(idx, 1); 
+                        spawnObj(); 
+                        if(xp>=level*300){level++; xp=0; if(level%2===0)sawCount++;}
+                    }
                 }
             }
         });
@@ -135,23 +146,28 @@
         // TESTERELER
         for(let i=0; i<sawCount; i++) {
             let a = sawAngle + (i*Math.PI*2/sawCount);
-            let sx = pos.x + Math.cos(a)*100, sy = pos.y + Math.sin(a)*100;
-            ctx.save(); ctx.translate(sx, sy); ctx.rotate(sawAngle*15);
+            let sx = pos.x + Math.cos(a)*95, sy = pos.y + Math.sin(a)*95;
+            ctx.save(); ctx.translate(sx, sy); ctx.rotate(sawAngle*12);
             if(imgSaw.complete) ctx.drawImage(imgSaw, -30, -30, 60, 60);
             ctx.restore();
         }
 
-        // SEN VE DİĞERLERİ
+        // DİĞER OYUNCULAR (Artık Görünüyor!)
         Object.values(others).forEach(p => {
-            ctx.fillStyle="white"; ctx.fillText(p.name, p.x, p.y-40);
+            if(!otherHeros[p.id]) { otherHeros[p.id] = new Image(); otherHeros[p.id].src = p.color; }
+            ctx.fillStyle="black"; ctx.textAlign="center"; ctx.font="bold 14px Arial";
+            ctx.fillText(p.name, p.x, p.y-40);
+            if(otherHeros[p.id].complete) ctx.drawImage(otherHeros[p.id], p.x-30, p.y-30, 60, 60);
         });
+
+        // SEN
         if(myHeroImg.complete) ctx.drawImage(myHeroImg, pos.x-30, pos.y-30, 60, 60);
-        ctx.fillStyle="white"; ctx.textAlign="center"; ctx.fillText(document.getElementById('pName').value, pos.x, pos.y-40);
+        ctx.fillStyle="black"; ctx.textAlign="center"; ctx.font="bold 14px Arial"; ctx.fillText(myName, pos.x, pos.y-40);
 
         ctx.restore();
 
-        // UI
-        ctx.fillStyle="white"; ctx.font="bold 20px Arial"; ctx.fillText(`LEVEL: ${level} | XP: ${xp}`, 20, 40);
+        // UI (Level ve XP)
+        ctx.fillStyle="black"; ctx.font="bold 20px Arial"; ctx.fillText(`LEVEL: ${level} | XP: ${xp}`, 20, 40);
         
         requestAnimationFrame(draw);
     }
