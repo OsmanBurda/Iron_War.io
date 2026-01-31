@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Iron War IO</title>
-    <style>body { margin: 0; background: #222; overflow: hidden; }</style>
+    <title>Iron War IO - Osman</title>
+    <style>
+        body { margin: 0; background: #111; overflow: hidden; }
+        canvas { display: block; background: #1a1a1a; }
+    </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
@@ -12,7 +15,7 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // ALTIN RESİMLERİN
+    // ALTIN RESİMLERİN (Senin attığın linkler)
     const imgA = {
         para: new Image(), disli: new Image(), kasa: new Image()
     };
@@ -20,43 +23,66 @@
     imgA.disli.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgefH-j_ZZP5JOOMPZoGjRRxInLmLVHvM6kovKdjYgDw&s";
     imgA.kasa.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRl4BxM22-TpThY7qwhHN3wcJ-ddm5yhJgzcrw_-_knnA&s=10";
 
+    // NORMAL RESİMLER (Buraya eski gri linklerini koymalısın)
     const imgN = { para: new Image(), disli: new Image(), kasa: new Image(), jen: new Image() };
-    // Buraya kendi eski linklerini eklemelisin!
 
     let worldObjects = [];
-    let myPos = { x: 5000, y: 5000 };
+    let myPos = { x: 5000, y: 5000 }; // Başlangıç merkezi
 
-    socket.on('init', (data) => { worldObjects = data.objects; });
+    socket.on('init', (data) => { 
+        worldObjects = data.objects; 
+        console.log("Objeler yüklendi!");
+    });
 
     function draw() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        ctx.fillStyle = "#1a1a1a"; // Arka plan
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         const camX = myPos.x - canvas.width / 2;
         const camY = myPos.y - canvas.height / 2;
 
         worldObjects.forEach(obj => {
             ctx.save();
-            let img = imgN[obj.kind.toLowerCase()];
+            let img = null;
 
+            // BÖLGE KONTROLÜ (Senin şeman)
             if (obj.tier === "A") {
-                if (obj.kind === "JEN") ctx.filter = "sepia(1) saturate(8) brightness(1.2)";
-                else img = imgA[obj.kind.toLowerCase()];
+                // Altın Bölgesi: Sadece altınlar çıkar
+                if (obj.kind === "JEN") {
+                    ctx.filter = "sepia(1) saturate(10) brightness(1.2) drop-shadow(0 0 10px gold)";
+                    img = imgN.jen;
+                } else {
+                    img = imgA[obj.kind.toLowerCase()];
+                }
             } else if (obj.tier === "E") {
+                // Elmas Bölgesi: Mavi parlama efekti
                 ctx.filter = "hue-rotate(180deg) brightness(1.5) drop-shadow(0 0 15px cyan)";
+                img = imgN[obj.kind.toLowerCase()];
+            } else {
+                // Normal Bölge: Eski gri eşyalar
+                img = imgN[obj.kind.toLowerCase()];
             }
 
-            if (img && img.src !== "") {
+            // ÇİZİM (Resim yoksa renkli kare çiz ki siyah ekran olmasın)
+            if (img && img.complete && img.src !== "") {
                 ctx.drawImage(img, obj.x - camX, obj.y - camY, 80, 80);
             } else {
-                // Resim yoksa yer tutucu çiz (Siyah ekran kalmasın diye)
-                ctx.fillStyle = obj.tier === "A" ? "gold" : (obj.tier === "E" ? "cyan" : "gray");
+                // RESİM YÜKLENENE KADAR GEÇİCİ KARELER
+                ctx.fillStyle = obj.tier === "E" ? "#00ffff" : (obj.tier === "A" ? "#ffd700" : "#888888");
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = ctx.fillStyle;
                 ctx.fillRect(obj.x - camX, obj.y - camY, 40, 40);
             }
             ctx.restore();
         });
+
+        // RADAR (Sağ Üst)
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillRect(canvas.width - 160, 10, 150, 150);
+        ctx.fillStyle = "white";
+        ctx.fillRect(canvas.width - 160 + (myPos.x/10000)*150, 10 + (myPos.y/10000)*150, 4, 4);
+
         requestAnimationFrame(draw);
     }
     draw();
