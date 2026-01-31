@@ -2,46 +2,42 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
-const path = require('path');
 
 const MAP_SIZE = 10000;
-const CENTER = 5000;
-const ELMAS_RADIUS = 1500; 
-const ALTIN_RADIUS = 3800;
+let players = {};
 
 app.use(express.static(__dirname));
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
 function createWorld() {
     let objects = [];
-    for(let i = 0; i < 2500; i++) {
+    for(let i = 0; i < 2000; i++) {
         let rx = Math.random() * MAP_SIZE;
         let ry = Math.random() * MAP_SIZE;
-        let dist = Math.sqrt(Math.pow(rx - CENTER, 2) + Math.pow(ry - CENTER, 2));
-        
-        let tier = "N";
-        if (dist < ELMAS_RADIUS) tier = "E"; 
-        else if (dist < ALTIN_RADIUS) tier = "A";
-
-        const r = Math.random();
-        let kind = r > 0.95 ? "JEN" : (r > 0.85 ? "KASA" : (r > 0.70 ? "DISLI" : "PARA"));
-
+        let dist = Math.sqrt(Math.pow(rx - 5000, 2) + Math.pow(ry - 5000, 2));
+        let tier = dist < 1500 ? "E" : (dist < 3800 ? "A" : "N");
+        let kind = Math.random() > 0.9 ? "JEN" : (Math.random() > 0.8 ? "KASA" : "PARA");
         objects.push({ id: i, x: rx, y: ry, kind: kind, tier: tier });
     }
     return objects;
 }
-
 let worldObjects = createWorld();
 
 io.on('connection', (socket) => {
-    socket.emit('init', { objects: worldObjects });
-    socket.on('join', (name) => {
-        // İsim kaydetme vs buraya eklenebilir
+    socket.on('join', (data) => {
+        players[socket.id] = { id: socket.id, x: 5000, y: 5000, name: data.name, xp: 0 };
+        socket.emit('init', { objects: worldObjects, id: socket.id });
     });
+    socket.on('move', (data) => {
+        if (players[socket.id]) {
+            players[socket.id].x = data.x;
+            players[socket.id].y = data.y;
+            players[socket.id].angle = data.angle;
+        }
+    });
+    socket.on('disconnect', () => { delete players[socket.id]; });
 });
 
+setInterval(() => { io.emit('update', players); }, 20);
+
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => { console.log('Sunucu Hazır!'); });
+http.listen(PORT, () => { console.log('Savaş Başladı!'); });
