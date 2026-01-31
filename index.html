@@ -3,27 +3,29 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body { margin: 0; overflow: hidden; background: #fff; touch-action: none; } [cite: 2026-01-28]
-        #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        #joystick-base { position: absolute; bottom: 50px; left: 50px; width: 120px; height: 120px; background: rgba(0,0,0,0.1); border-radius: 50%; pointer-events: auto; }
+        body { margin: 0; overflow: hidden; background: #fff; touch-action: none; }
+        #joystick-base { position: absolute; bottom: 50px; left: 50px; width: 120px; height: 120px; background: rgba(0,0,0,0.1); border-radius: 50%; }
         #joystick-knob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: #333; border-radius: 50%; }
+        canvas { display: block; width: 100vw; height: 100vh; }
     </style>
 </head>
 <body>
     <canvas id="game"></canvas>
-    <div id="ui"><div id="joystick-base"><div id="joystick-knob"></div></div></div>
+    <div id="joystick-base"><div id="joystick-knob"></div></div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
         const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
-        let myId, players = {}, bullets = [], myPos = {x:5000, y:5000}, mapSize = 10000, running = true;
+        let myId, players = {}, bullets = [], myPos = {x:5000, y:5000}, mapSize = 10000;
         let joy = { active: false, x: 0, y: 0, angle: 0 };
 
         socket.on('init', d => { myId = d.id; mapSize = d.mapSize; });
         socket.on('update', d => { 
-            players = d.players; bullets = d.bullets; 
-            // Geri atmayı engelleyen kilit: Kendi pozisyonumuzu serverdan eşitlemiyoruz [cite: 2026-01-26]
+            players = d.players; 
+            bullets = d.bullets;
+            // Kendi pozisyonumuzu sunucudan gelenle EZMİYORUZ! [cite: 2026-01-26]
         });
 
         window.addEventListener('keydown', e => {
@@ -42,7 +44,7 @@
             ctx.clearRect(0,0,canvas.width,canvas.height);
 
             bullets.forEach(b => {
-                ctx.fillStyle = "black"; ctx.beginPath();
+                ctx.fillStyle = "#000"; ctx.beginPath();
                 ctx.arc(b.x - camX, b.y - camY, 5, 0, 7); ctx.fill();
             });
 
@@ -54,8 +56,9 @@
                 ctx.fillStyle = "black"; ctx.textAlign="center";
                 ctx.fillText(`${p.name} [HP:${p.hp}]`, 0, -35); [cite: 2026-01-27]
                 ctx.rotate(id === myId ? joy.angle : p.angle);
-                ctx.fillStyle = id === myId ? "blue" : "red";
+                ctx.fillStyle = id === myId ? "#2196F3" : "#F44336";
                 ctx.beginPath(); ctx.arc(0,0,20,0,7); ctx.fill();
+                // Testere Efekti
                 ctx.rotate(Date.now()*0.02); ctx.fillStyle="#888";
                 for(let i=0; i<6; i++) { ctx.rotate(Math.PI/3); ctx.fillRect(20, -3, 12, 6); }
                 ctx.restore();
