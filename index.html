@@ -1,8 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Iron War IO - Osman</title>
-    <style>body { margin: 0; background: #1a1a1a; overflow: hidden; }</style>
+    <style>
+        body { margin: 0; background: #1a1a1a; overflow: hidden; touch-action: none; }
+        canvas { display: block; }
+    </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
@@ -66,10 +70,17 @@
     }
     draw();
 
-    window.addEventListener('mousemove', (e) => {
-        myPos.x += (e.clientX - canvas.width/2) * 0.05;
-        myPos.y += (e.clientY - canvas.height/2) * 0.05;
-    });
+    // HAREKET KONTROLLERİ (PC ve MOBİL)
+    const handleMove = (clientX, clientY) => {
+        myPos.x += (clientX - canvas.width/2) * 0.05;
+        myPos.y += (clientY - canvas.height/2) * 0.05;
+    };
+
+    window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY));
+    window.addEventListener('touchmove', (e) => {
+        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+        e.preventDefault();
+    }, { passive: false });
 </script>
 </body>
 </html>
