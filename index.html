@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Iron War IO - Osman</title>
+    <title>Iron War IO</title>
     <style>
         body { margin: 0; background: #111; overflow: hidden; }
         canvas { display: block; background: #1a1a1a; }
@@ -23,16 +23,13 @@
     imgA.disli.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgefH-j_ZZP5JOOMPZoGjRRxInLmLVHvM6kovKdjYgDw&s";
     imgA.kasa.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRl4BxM22-TpThY7qwhHN3wcJ-ddm5yhJgzcrw_-_knnA&s=10";
 
-    // NORMAL RESİMLER (Buraya eski gri linklerini koymalısın)
+    // Diğer resimler için boş objeler (Hata vermemesi için)
     const imgN = { para: new Image(), disli: new Image(), kasa: new Image(), jen: new Image() };
 
     let worldObjects = [];
-    let myPos = { x: 5000, y: 5000 }; // Başlangıç merkezi
+    let myPos = { x: 5000, y: 5000 };
 
-    socket.on('init', (data) => { 
-        worldObjects = data.objects; 
-        console.log("Objeler yüklendi!");
-    });
+    socket.on('init', (data) => { worldObjects = data.objects; });
 
     function draw() {
         canvas.width = window.innerWidth;
@@ -45,44 +42,35 @@
         worldObjects.forEach(obj => {
             ctx.save();
             let img = null;
+            let color = "#888"; // Varsayılan Normal rengi
 
-            // BÖLGE KONTROLÜ (Senin şeman)
             if (obj.tier === "A") {
-                // Altın Bölgesi: Sadece altınlar çıkar
+                color = "#ffd700"; // Altın rengi
                 if (obj.kind === "JEN") {
-                    ctx.filter = "sepia(1) saturate(10) brightness(1.2) drop-shadow(0 0 10px gold)";
+                    ctx.filter = "sepia(1) saturate(8) brightness(1.2)";
                     img = imgN.jen;
                 } else {
                     img = imgA[obj.kind.toLowerCase()];
                 }
             } else if (obj.tier === "E") {
-                // Elmas Bölgesi: Mavi parlama efekti
-                ctx.filter = "hue-rotate(180deg) brightness(1.5) drop-shadow(0 0 15px cyan)";
+                color = "#00ffff"; // Elmas rengi
+                ctx.filter = "hue-rotate(180deg) brightness(1.5)";
                 img = imgN[obj.kind.toLowerCase()];
             } else {
-                // Normal Bölge: Eski gri eşyalar
                 img = imgN[obj.kind.toLowerCase()];
             }
 
-            // ÇİZİM (Resim yoksa renkli kare çiz ki siyah ekran olmasın)
-            if (img && img.complete && img.src !== "") {
+            // Çizim: Resim varsa çiz, yoksa renkli kare çiz
+            if (img && img.complete && img.src !== "" && !img.src.includes('undefined')) {
                 ctx.drawImage(img, obj.x - camX, obj.y - camY, 80, 80);
             } else {
-                // RESİM YÜKLENENE KADAR GEÇİCİ KARELER
-                ctx.fillStyle = obj.tier === "E" ? "#00ffff" : (obj.tier === "A" ? "#ffd700" : "#888888");
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = ctx.fillStyle;
+                ctx.fillStyle = color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = color;
                 ctx.fillRect(obj.x - camX, obj.y - camY, 40, 40);
             }
             ctx.restore();
         });
-
-        // RADAR (Sağ Üst)
-        ctx.fillStyle = "rgba(0,0,0,0.5)";
-        ctx.fillRect(canvas.width - 160, 10, 150, 150);
-        ctx.fillStyle = "white";
-        ctx.fillRect(canvas.width - 160 + (myPos.x/10000)*150, 10 + (myPos.y/10000)*150, 4, 4);
-
         requestAnimationFrame(draw);
     }
     draw();
