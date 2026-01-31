@@ -3,30 +3,36 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
-// OSMAN'IN BÖLGE AYARLARI (Sunucu Tarafı)
 const MAP_SIZE = 10000;
 const CENTER = 5000;
-const ELMAS_RADIUS = 1200;
-const ALTIN_RADIUS = 3500;
+const ELMAS_RADIUS = 1500; // E Bölgesi Sınırı
+const ALTIN_RADIUS = 3800; // A Bölgesi Sınırı
 
-// Objeleri oluştururken hangi bölgede olduklarını sunucu hesaplar
-function getObjectTier(x, y) {
-    const dist = Math.sqrt(Math.pow(x - CENTER, 2) + Math.pow(y - CENTER, 2));
-    if (dist < ELMAS_RADIUS) return "E"; // Elmas Merkez
-    if (dist < ALTIN_RADIUS) return "A"; // Altın Orta
-    return "N"; // Normal Dış
+// Objeleri oluştururken bölgeye göre kesin tip atıyoruz
+function spawnObjects() {
+    let objects = [];
+    for(let i = 0; i < 4000; i++) {
+        let rx = Math.random() * MAP_SIZE;
+        let ry = Math.random() * MAP_SIZE;
+        let dist = Math.sqrt(Math.pow(rx - CENTER, 2) + Math.pow(ry - CENTER, 2));
+        
+        let tier;
+        if (dist < ELMAS_RADIUS) {
+            tier = "E"; // SADECE ELMAS
+        } else if (dist < ALTIN_RADIUS) {
+            tier = "A"; // SADECE ALTIN
+        } else {
+            tier = "N"; // SADECE NORMAL
+        }
+
+        objects.push({ x: rx, y: ry, tier: tier, id: i });
+    }
+    return objects;
 }
 
-// Statik dosyaları (HTML, Resimler) istemciye sunar
 app.use(express.static(__dirname + '/public'));
-
-io.on('connection', (socket) => {
-    console.log('Bir oyuncu bağlandı: ' + socket.id);
-    
-    // Oyuncu bilgilerini ve E-A-N bölgelerini buraya ekleyebilirsin
-});
 
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => {
-    console.log('Sunucu ' + PORT + ' portunda çalışıyor...');
+    console.log('Sunucu ' + PORT + ' portunda aktif.');
 });
