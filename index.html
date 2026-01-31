@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Osman's War IO</title>
+    <title>Iron War IO</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #222; }
+        body { margin: 0; background: #111; color: white; overflow: hidden; }
         canvas { display: block; }
     </style>
 </head>
@@ -15,14 +15,17 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // ALTIN RESİMLERİN (Senin attığın linkler)
+    // RESİMLER
     const imgA = {
         para: new Image(), disli: new Image(), kasa: new Image(), jen: new Image()
     };
+    // Senin attığın altın linkleri
     imgA.para.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpjNy8OW8lhUhtntVy_-jPuOBWpyLxzXb-tr5NIwpvqg&s=10";
     imgA.disli.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgefH-j_ZZP5JOOMPZoGjRRxInLmLVHvM6kovKdjYgDw&s";
     imgA.kasa.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRl4BxM22-TpThY7qwhHN3wcJ-ddm5yhJgzcrw_-_knnA&s=10";
-    // Jeneratör için efekti aşağıda vereceğiz.
+
+    const imgN = { para: new Image(), disli: new Image(), kasa: new Image(), jen: new Image() };
+    // Buraya kendi eski metal resim linklerini koymalısın
 
     let worldObjects = [];
     let myPos = { x: 5000, y: 5000 };
@@ -30,28 +33,34 @@
     socket.on('init', (data) => { worldObjects = data.objects; });
 
     function draw() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
         const camX = myPos.x - canvas.width / 2;
         const camY = myPos.y - canvas.height / 2;
 
         worldObjects.forEach(obj => {
             ctx.save();
             let img;
-            
+
             if (obj.tier === "A") {
-                // A bölgesinde normal eşya asla çizilmez
+                // ALTIN BÖLGESİ (Sadece Altınlar)
                 if (obj.kind === "JEN") {
-                    ctx.filter = "sepia(1) saturate(10) brightness(1.2)"; // Altın Jeneratör Efekti
-                    // Buraya imgN.jen gelmeli
+                    ctx.filter = "sepia(1) saturate(10) brightness(1.2) drop-shadow(0 0 10px gold)";
+                    img = imgN.jen;
                 } else {
                     img = imgA[obj.kind.toLowerCase()];
                 }
             } else if (obj.tier === "E") {
+                // ELMAS BÖLGESİ (Sadece Mavi Efektliler)
                 ctx.filter = "hue-rotate(180deg) brightness(1.5) drop-shadow(0 0 15px cyan)";
-                // Elmas resimleri gelene kadar efektli normal çizilecek
+                img = imgN[obj.kind.toLowerCase()];
+            } else {
+                // NORMAL BÖLGE (Sadece Metaller)
+                img = imgN[obj.kind.toLowerCase()];
             }
 
-            // Çizim işlemi (Resim yüklüyse çiz)
             if (img && img.complete) {
                 ctx.drawImage(img, obj.x - camX, obj.y - camY, 80, 80);
             }
@@ -59,9 +68,6 @@
         });
         requestAnimationFrame(draw);
     }
-    
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
     draw();
 </script>
 </body>
