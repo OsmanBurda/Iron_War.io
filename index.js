@@ -4,7 +4,7 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const path = require('path');
 
-// --- HARİTA AYARLARI ---
+// OSMAN'IN BÖLGE AYARLARI
 const MAP_SIZE = 10000;
 const CENTER = 5000;
 const ELMAS_RADIUS = 1500; 
@@ -18,17 +18,15 @@ app.get('/', (req, res) => {
 
 function createWorld() {
     let objects = [];
-    for(let i = 0; i < 2500; i++) {
+    for(let i = 0; i < 2000; i++) {
         let rx = Math.random() * MAP_SIZE;
         let ry = Math.random() * MAP_SIZE;
         let dist = Math.sqrt(Math.pow(rx - CENTER, 2) + Math.pow(ry - CENTER, 2));
         
-        let tier;
+        let tier = "N";
         if (dist < ELMAS_RADIUS) tier = "E"; 
         else if (dist < ALTIN_RADIUS) tier = "A";
-        else tier = "N";
 
-        // Rastgele tip: Para, Dişli, Kasa, Jeneratör
         const r = Math.random();
         let kind = r > 0.95 ? "JEN" : (r > 0.85 ? "KASA" : (r > 0.70 ? "DISLI" : "PARA"));
 
@@ -40,8 +38,8 @@ function createWorld() {
 let worldObjects = createWorld();
 
 io.on('connection', (socket) => {
-    socket.emit('init', { objects: worldObjects });
+    socket.emit('init', { objects: worldObjects, mapSize: MAP_SIZE });
 });
 
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => { console.log('Sunucu 3000 portunda aktif!'); });
+http.listen(PORT, () => { console.log('Sunucu Hazır!'); });
