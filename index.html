@@ -1,38 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Iron War IO</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Iron War IO - Osman</title>
     <style>
         body { margin: 0; background: white; overflow: hidden; touch-action: none; font-family: sans-serif; }
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        #joystick-area { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(0,0,0,0.1); border-radius: 50%; pointer-events: auto; }
-        #joystick-stick { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: #333; border-radius: 50%; }
-        #xp-container { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 250px; height: 15px; background: #eee; border: 2px solid #333; }
-        #xp-bar { width: 10%; height: 100%; background: #4CAF50; }
+        #joystick-ui { position: absolute; bottom: 50px; left: 50px; width: 120px; height: 120px; background: rgba(0,0,0,0.1); border-radius: 50%; z-index: 5; }
+        #joystick-knob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: #333; border-radius: 50%; }
         #login { position: absolute; width: 100%; height: 100%; background: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
     </style>
 </head>
 <body>
 <div id="login">
     <h1>IRON WAR IO</h1>
-    <input type="text" id="nameInp" placeholder="Adın" style="padding:10px; margin:10px;">
-    <button onclick="start()" style="padding:10px 20px;">BAŞLA</button>
+    <input type="text" id="nameInp" placeholder="Adın" style="padding:10px;">
+    <button onclick="start()" style="padding:10px 20px; margin-top:10px;">BAŞLA</button>
 </div>
-
-<div id="ui-layer">
-    <div id="joystick-area"><div id="joystick-stick"></div></div>
-    <div id="xp-container"><div id="xp-bar"></div></div>
-</div>
-
+<div id="joystick-ui"><div id="joystick-knob"></div></div>
 <canvas id="gameCanvas"></canvas>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io();
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    // TÜM LİNKLERİN (DEMİR DAHİL)
+    // LINKLER
     const images = {
         E: { para: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTbV8GQtIgmRxDnqXA5kHPhYBHFeLwV72jxHS0pNPV1w&s=10", jen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRGVmLe_QhENqhc0hfzIRV_MYQuPSkK9GqsRbtcGGRHKQ&s=10" },
         A: { para: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpjNy8OW8lhUhtntVy_-jPuOBWpyLxzXb-tr5NIwpvqg&s=10", jen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxHYj-h1HNZYH3JnUeM-xT6Wps9LRjPrWdsLEMyk7W2g&s" },
@@ -42,7 +35,7 @@
     const loaded = {};
     for(let t in images) { loaded[t] = {}; for(let k in images[t]) { let img = new Image(); img.src = images[t][k]; loaded[t][k] = img; } }
 
-    let myId, players = {}, myPos = {x:5000, y:5000}, angle = 0, running = false;
+    let myId, objects = [], players = {}, myPos = {x:5000, y:5000}, angle = 0, running = false;
     let joy = { active: false, x: 0, y: 0 };
 
     function start() {
@@ -52,60 +45,63 @@
         loop();
     }
 
-    socket.on('init', d => { myId = d.id; });
+    socket.on('init', d => { objects = d.objects; myId = d.id; });
     socket.on('update', p => { players = p; if(p[myId]) { myPos.x = p[myId].x; myPos.y = p[myId].y; } });
 
     function loop() {
         if(!running) return;
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        ctx.fillStyle = "white"; ctx.fillRect(0,0,canvas.width,canvas.height); // Arka plan beyaz
+        ctx.fillStyle = "white"; ctx.fillRect(0,0,canvas.width,canvas.height);
 
         const camX = myPos.x - canvas.width/2, camY = myPos.y - canvas.height/2;
 
-        // Karakterleri Çiz
+        // Objeleri Çiz (Ekranda olanları)
+        objects.forEach(o => {
+            if(o.x > camX - 100 && o.x < camX + canvas.width + 100 && o.y > camY - 100 && o.y < camY + canvas.height + 100) {
+                let img = loaded[o.tier] && loaded[o.tier][o.kind.toLowerCase()];
+                if(img && img.complete) ctx.drawImage(img, o.x - camX, o.y - camY, 70, 70);
+            }
+        });
+
+        // Oyuncular
         for(let id in players) {
             let p = players[id];
             ctx.save();
             ctx.translate(p.x - camX, p.y - camY);
-            
-            // İsim
-            ctx.fillStyle = "black"; ctx.textAlign = "center"; ctx.fillText(p.name, 0, -35);
-            
-            // Gövde
-            ctx.rotate(p.angle || 0);
+            ctx.fillStyle = "black"; ctx.textAlign="center"; ctx.fillText(p.name, 0, -35);
+            ctx.rotate(p.angle);
             ctx.fillStyle = id === myId ? "#2196F3" : "#F44336";
-            ctx.beginPath(); ctx.arc(0,0,20,0,Math.PI*2); ctx.fill();
-            
-            // TESTERE DİŞLERİ
-            ctx.rotate(Date.now()*0.01);
-            ctx.fillStyle = "#666";
-            for(let i=0; i<6; i++) { ctx.rotate(Math.PI/3); ctx.fillRect(20, -3, 12, 6); }
+            ctx.beginPath(); ctx.arc(0,0,20,0,7); ctx.fill();
+            // Testere
+            ctx.rotate(Date.now()*0.01); ctx.fillStyle="#777";
+            for(let i=0; i<6; i++) { ctx.rotate(Math.PI/3); ctx.fillRect(20, -4, 12, 8); }
             ctx.restore();
         }
 
-        // MINI MAP
-        ctx.fillStyle = "rgba(0,0,0,0.1)"; ctx.fillRect(canvas.width-110, 10, 100, 100);
-        ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(canvas.width-110 + (myPos.x/100), 10 + (myPos.y/100), 2, 0, 7); ctx.fill();
-        
+        // Mini Map (10000 Boyuta göre ayarlı)
+        ctx.fillStyle = "rgba(0,0,0,0.1)"; ctx.fillRect(canvas.width-120, 20, 100, 100);
+        ctx.fillStyle = "red"; ctx.beginPath(); 
+        ctx.arc(canvas.width-120 + (myPos.x/100), 20 + (myPos.y/100), 3, 0, 7); ctx.fill();
+
         if(joy.active) {
-            myPos.x += joy.x * 6; myPos.y += joy.y * 6;
+            myPos.x += joy.x * 8; myPos.y += joy.y * 8;
             angle = Math.atan2(joy.y, joy.x);
             socket.emit('move', { x: myPos.x, y: myPos.y, angle: angle });
         }
         requestAnimationFrame(loop);
     }
 
-    const jArea = document.getElementById('joystick-area'), jStick = document.getElementById('joystick-stick');
-    jArea.addEventListener('touchstart', () => joy.active = true);
-    jArea.addEventListener('touchmove', e => {
-        let t = e.touches[0], b = jArea.getBoundingClientRect();
+    const ui = document.getElementById('joystick-ui'), knob = document.getElementById('joystick-knob');
+    ui.addEventListener('touchstart', (e) => { joy.active = true; });
+    ui.addEventListener('touchmove', (e) => {
+        let t = e.touches[0], b = ui.getBoundingClientRect();
         let dx = t.clientX - (b.left + 60), dy = t.clientY - (b.top + 60);
-        let d = Math.min(Math.sqrt(dx*dx + dy*dy), 40);
+        let dist = Math.min(Math.sqrt(dx*dx + dy*dy), 45);
         let a = Math.atan2(dy, dx);
-        joy.x = Math.cos(a) * (d/40); joy.y = Math.sin(a) * (d/40);
-        jStick.style.transform = `translate(${joy.x*30}px, ${joy.y*30}px)`;
+        joy.x = Math.cos(a) * (dist/45); joy.y = Math.sin(a) * (dist/45);
+        knob.style.transform = `translate(${joy.x*35}px, ${joy.y*35}px)`;
     });
-    window.addEventListener('touchend', () => { joy.active = false; jStick.style.transform = 'translate(0,0)'; });
+    window.addEventListener('touchend', () => { joy.active = false; knob.style.transform = 'translate(0,0)'; });
 </script>
 </body>
 </html>
