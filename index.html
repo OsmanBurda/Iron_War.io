@@ -3,73 +3,91 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body { margin: 0; background: white; overflow: hidden; touch-action: none; }
-        #joystick-base { position: absolute; bottom: 50px; left: 50px; width: 120px; height: 120px; background: rgba(0,0,0,0.1); border-radius: 50%; }
-        #joystick-knob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: #333; border-radius: 50%; }
-        canvas { display: block; width: 100vw; height: 100vh; }
+        body { margin: 0; background: #fafafa; overflow: hidden; touch-action: none; font-family: sans-serif; }
+        #joystick-base { position: absolute; bottom: 60px; left: 60px; width: 100px; height: 100px; background: rgba(0,0,0,0.1); border-radius: 50%; }
+        #joystick-knob { position: absolute; top: 25px; left: 25px; width: 50px; height: 50px; background: #444; border-radius: 50%; }
+        #score { position: absolute; top: 20px; left: 20px; font-size: 24px; color: gold; text-shadow: 1px 1px 2px #000; pointer-events: none; }
     </style>
 </head>
 <body>
+    <div id="score">Score: 0</div>
     <canvas id="gameCanvas"></canvas>
     <div id="joystick-base"><div id="joystick-knob"></div></div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io();
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    
+    // Görsel Linkleri (Render'da hata almamak için hata kontrollü)
     const images = {
-        E: { para: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTbV8GQtIgmRxDnqXA5kHPhYBHFeLwV72jxHS0pNPV1w&s=10", jen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRGVmLe_QhENqhc0hfzIRV_MYQuPSkK9GqsRbtcGGRHKQ&s=10" },
-        A: { para: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpjNy8OW8lhUhtntVy_-jPuOBWpyLxzXb-tr5NIwpvqg&s=10", jen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxHYj-h1HNZYH3JnUeM-xT6Wps9LRjPrWdsLEMyk7W2g&s" },
-        N: { para: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgefH-j_ZZP5JOOMPZoGjRRxInLmLVHvM6kovKdjYgDw&s", jen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS2uR5SNOE4TEVlF0BPNz770a_hsLs1wMhi2Q_eVT5l8g&s=10" }
+        E: { para: "https://i.ibb.co/Lz0p6V7/gold.png", jen: "https://i.ibb.co/m0fH4L3/jen.png" },
+        A: { para: "https://i.ibb.co/Lz0p6V7/gold.png", jen: "https://i.ibb.co/m0fH4L3/jen.png" },
+        N: { para: "https://i.ibb.co/Lz0p6V7/gold.png", jen: "https://i.ibb.co/m0fH4L3/jen.png" }
     };
+
     const loaded = {};
     for(let t in images) { loaded[t] = {}; for(let k in images[t]) { let img = new Image(); img.src = images[t][k]; loaded[t][k] = img; } }
+
     let myId, objects = [], players = {}, myPos = {x:5000, y:5000}, mapSize = 10000;
     let joy = { active: false, x: 0, y: 0, angle: 0 };
 
     socket.on('init', d => { objects = d.objects; myId = d.id; mapSize = d.mapSize; });
-    socket.on('update', p => { players = p; }); [cite: 2026-01-26]
+    socket.on('update', p => { players = p; if(players[myId]) document.getElementById('score').innerText = "Score: " + players[myId].score; });
+    socket.on('objectCollected', data => { objects = objects.filter(o => o.id !== data.id); });
 
     function loop() {
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
         if(joy.active) {
-            myPos.x = Math.max(0, Math.min(mapSize, myPos.x + joy.x * 8));
-            myPos.y = Math.max(0, Math.min(mapSize, myPos.y + joy.y * 8));
+            myPos.x = Math.max(0, Math.min(mapSize, myPos.x + joy.x * 7));
+            myPos.y = Math.max(0, Math.min(mapSize, myPos.y + joy.y * 7));
             socket.emit('move', { x: myPos.x, y: myPos.y, angle: joy.angle });
         }
+
         const camX = myPos.x - canvas.width/2, camY = myPos.y - canvas.height/2;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Eşyalar
         objects.forEach(o => {
             let img = loaded[o.tier] && loaded[o.tier][o.kind.toLowerCase()];
-            if(img && img.complete) ctx.drawImage(img, o.x - camX, o.y - camY, 80, 80);
+            if(img && img.complete) { ctx.drawImage(img, o.x - camX, o.y - camY, 60, 60); }
+            else { ctx.fillStyle = "gold"; ctx.fillRect(o.x - camX, o.y - camY, 30, 30); }
         });
+
+        // Oyuncular
         for(let id in players) {
             let p = players[id];
             let rX = (id === myId) ? myPos.x : p.x; [cite: 2026-01-26]
             let rY = (id === myId) ? myPos.y : p.y; [cite: 2026-01-26]
+
             ctx.save(); ctx.translate(rX - camX, rY - camY);
-            ctx.fillStyle = "black"; ctx.textAlign="center"; ctx.fillText(p.name, 0, -35);
+            ctx.fillStyle = "black"; ctx.textAlign="center"; ctx.fillText(p.name, 0, -30);
             ctx.rotate(id === myId ? joy.angle : p.angle);
             ctx.fillStyle = id === myId ? "#2196F3" : "#F44336";
             ctx.beginPath(); ctx.arc(0,0,20,0,7); ctx.fill();
+            
+            // Testere
             ctx.rotate(Date.now()*0.02); ctx.fillStyle="#888";
-            for(let i=0; i<6; i++) { ctx.rotate(Math.PI/3); ctx.fillRect(20, -4, 15, 8); }
+            for(let i=0; i<6; i++) { ctx.rotate(Math.PI/3); ctx.fillRect(18, -3, 12, 6); }
             ctx.restore();
         }
         requestAnimationFrame(loop);
     }
+
     const jBase = document.getElementById('joystick-base'), jKnob = document.getElementById('joystick-knob');
     jBase.addEventListener('touchstart', e => { e.preventDefault(); joy.active = true; });
     jBase.addEventListener('touchmove', e => {
         e.preventDefault();
         let t = e.touches[0], b = jBase.getBoundingClientRect();
-        let dx = t.clientX - (b.left + 60), dy = t.clientY - (b.top + 60);
-        let dist = Math.min(Math.sqrt(dx*dx + dy*dy), 45);
+        let dx = t.clientX - (b.left + 50), dy = t.clientY - (b.top + 50);
+        let dist = Math.min(Math.sqrt(dx*dx + dy*dy), 40);
         joy.angle = Math.atan2(dy, dx);
-        joy.x = Math.cos(joy.angle) * (dist/45); joy.y = Math.sin(joy.angle) * (dist/45);
-        jKnob.style.transform = `translate(${joy.x*35}px, ${joy.y*35}px)`;
+        joy.x = Math.cos(joy.angle) * (dist/40); joy.y = Math.sin(joy.angle) * (dist/40);
+        jKnob.style.transform = `translate(${joy.x*30}px, ${joy.y*30}px)`;
     }, {passive: false});
     window.addEventListener('touchend', () => { joy.active = false; jKnob.style.transform = 'translate(0,0)'; });
+
     socket.emit('join', { name: "Osman" });
     loop();
 </script>
