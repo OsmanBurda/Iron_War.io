@@ -2,116 +2,100 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron War IO</title>
     <style>
-        body { margin: 0; background: white; overflow: hidden; touch-action: none; }
-        #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        #joystick-base { position: absolute; bottom: 50px; left: 50px; width: 120px; height: 120px; background: rgba(0,0,0,0.1); border-radius: 50%; pointer-events: auto; }
+        body { margin: 0; overflow: hidden; background: #eee; touch-action: none; }
+        #joystick-base { position: absolute; bottom: 50px; left: 50px; width: 120px; height: 120px; background: rgba(0,0,0,0.2); border-radius: 50%; }
         #joystick-knob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: #333; border-radius: 50%; }
-        #login { position: absolute; inset: 0; background: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
+        canvas { display: block; }
     </style>
 </head>
 <body>
-<div id="login">
-    <h1>IRON WAR IO</h1>
-    <input type="text" id="nameInp" placeholder="Adın" style="padding:10px;">
-    <button onclick="start()" style="padding:10px 20px; margin-top:10px;">BAŞLA</button>
-</div>
-
-<div id="ui">
+    <canvas id="game"></canvas>
     <div id="joystick-base"><div id="joystick-knob"></div></div>
-</div>
-
-<canvas id="gameCanvas"></canvas>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io();
-    const canvas = document.getElementById('gameCanvas');
+    const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     
-    // UNUTMADIM: METAL (N) EŞYALAR BURADA
-    const images = {
-        E: { para: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTbV8GQtIgmRxDnqXA5kHPhYBHFeLwV72jxHS0pNPV1w&s=10", jen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRGVmLe_QhENqhc0hfzIRV_MYQuPSkK9GqsRbtcGGRHKQ&s=10" },
-        A: { para: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpjNy8OW8lhUhtntVy_-jPuOBWpyLxzXb-tr5NIwpvqg&s=10", jen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxHYj-h1HNZYH3JnUeM-xT6Wps9LRjPrWdsLEMyk7W2g&s" },
-        N: { para: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgefH-j_ZZP5JOOMPZoGjRRxInLmLVHvM6kovKdjYgDw&s", jen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS2uR5SNOE4TEVlF0BPNz770a_hsLs1wMhi2Q_eVT5l8g&s=10" }
-    };
-
-    const loaded = {};
-    for(let t in images) { loaded[t] = {}; for(let k in images[t]) { let img = new Image(); img.src = images[t][k]; loaded[t][k] = img; } }
-
-    let myId, objects = [], players = {}, myPos = {x:5000, y:5000}, running = false, mapSize = 10000;
+    let myId, players = {}, myPos = {x:5000, y:5000}, mapSize = 10000;
     let joy = { active: false, x: 0, y: 0, angle: 0 };
 
+    socket.on('init', d => { myId = d.id; mapSize = d.mapSize; });
+    
+    // HAREKET DÜZELTME: Sunucudan gelen kendi konumumuzu görmezden geliyoruz (Geri atma bitti!)
+    socket.on('update', p => { players = p; });
+
     function start() {
-        socket.emit('join', { name: document.getElementById('nameInp').value || "Osman" });
-        document.getElementById('login').style.display = 'none';
-        running = true;
+        socket.emit('join', { name: "Osman" });
         loop();
     }
 
-    socket.on('init', d => { objects = d.objects; myId = d.id; mapSize = d.mapSize; });
-    socket.on('update', p => { players = p; if(p[myId]) { myPos.x = p[myId].x; myPos.y = p[myId].y; } });
+    // Tuş Kontrolleri (4 Yönlü Ateş ve 'b' Gücü)
+    window.addEventListener('keydown', e => {
+        if(e.code === 'Space') socket.emit('shoot'); 
+        if(e.key.toLowerCase() === 'b') socket.emit('special'); 
+    });
 
     function loop() {
-        if(!running) return;
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        ctx.fillStyle = "white"; ctx.fillRect(0,0,canvas.width,canvas.height);
+        
+        // AKICI HAREKET HESABI
+        if(joy.active) {
+            myPos.x = Math.max(0, Math.min(mapSize, myPos.x + joy.x * 8));
+            myPos.y = Math.max(0, Math.min(mapSize, myPos.y + joy.y * 8));
+            socket.emit('move', { x: myPos.x, y: myPos.y, angle: joy.angle });
+        }
 
-        const camX = myPos.x - canvas.width/2, camY = myPos.y - canvas.height/2;
+        const camX = myPos.x - canvas.width/2;
+        const camY = myPos.y - canvas.height/2;
 
-        // Eşyaları Çiz
-        objects.forEach(o => {
-            let img = loaded[o.tier] && loaded[o.tier][o.kind.toLowerCase()];
-            if(img && img.complete) ctx.drawImage(img, o.x - camX, o.y - camY, 80, 80);
-        });
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Oyuncular ve Dönen Testere
         for(let id in players) {
             let p = players[id];
+            // Kendi karakterimiz için yerel 'myPos', başkaları için server verisi
+            let rX = (id === myId) ? myPos.x : p.x;
+            let rY = (id === myId) ? myPos.y : p.y;
+
             ctx.save();
-            ctx.translate(p.x - camX, p.y - camY);
-            ctx.fillStyle = "black"; ctx.textAlign="center"; ctx.fillText(p.name, 0, -35);
-            ctx.rotate(p.angle);
-            ctx.fillStyle = id === myId ? "#2196F3" : "#F44336";
-            ctx.beginPath(); ctx.arc(0,0,20,0,7); ctx.fill();
-            // TESTERE
-            ctx.rotate(Date.now()*0.015); ctx.fillStyle="#888";
-            for(let i=0; i<6; i++) { ctx.rotate(Math.PI/3); ctx.fillRect(20, -4, 15, 8); }
-            ctx.restore();
-        }
+            ctx.translate(rX - camX, rY - camY);
+            
+            // İsim ve Can
+            ctx.fillStyle = "black"; ctx.textAlign="center";
+            ctx.fillText(`${p.name} [HP:${p.hp}]`, 0, -35);
 
-        // MINI MAP (TÜM DÜŞMANLAR GÖZÜKÜR)
-        ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.fillRect(canvas.width-120, 20, 100, 100);
-        for(let id in players) {
+            // Karakter
+            ctx.rotate(id === myId ? joy.angle : p.angle);
             ctx.fillStyle = id === myId ? "blue" : "red";
-            ctx.beginPath();
-            ctx.arc(canvas.width-120 + (players[id].x/(mapSize/100)), 20 + (players[id].y/(mapSize/100)), 3, 0, 7);
-            ctx.fill();
-        }
-
-        if(joy.active) {
-            let nextX = myPos.x + joy.x * 8;
-            let nextY = myPos.y + joy.y * 8;
-            // Duvar kısıtlaması (0-10000)
-            myPos.x = Math.max(0, Math.min(mapSize, nextX));
-            myPos.y = Math.max(0, Math.min(mapSize, nextY));
-            socket.emit('move', { x: myPos.x, y: myPos.y, angle: joy.angle });
+            ctx.beginPath(); ctx.arc(0,0,20,0,7); ctx.fill();
+            
+            // TESTERE (Görsel efekt)
+            ctx.rotate(Date.now()*0.02);
+            ctx.fillStyle = "#777";
+            for(let i=0; i<6; i++) { ctx.rotate(Math.PI/3); ctx.fillRect(22, -3, 12, 6); }
+            
+            ctx.restore();
         }
         requestAnimationFrame(loop);
     }
 
+    // Joystick Ayarları
     const jBase = document.getElementById('joystick-base'), jKnob = document.getElementById('joystick-knob');
-    jBase.addEventListener('touchstart', () => joy.active = true);
+    jBase.addEventListener('touchstart', e => { e.preventDefault(); joy.active = true; });
     jBase.addEventListener('touchmove', e => {
+        e.preventDefault();
         let t = e.touches[0], b = jBase.getBoundingClientRect();
         let dx = t.clientX - (b.left + 60), dy = t.clientY - (b.top + 60);
         let dist = Math.min(Math.sqrt(dx*dx + dy*dy), 45);
         joy.angle = Math.atan2(dy, dx);
         joy.x = Math.cos(joy.angle) * (dist/45); joy.y = Math.sin(joy.angle) * (dist/45);
         jKnob.style.transform = `translate(${joy.x*35}px, ${joy.y*35}px)`;
-    });
+    }, {passive: false});
     window.addEventListener('touchend', () => { joy.active = false; jKnob.style.transform = 'translate(0,0)'; });
+
+    start();
 </script>
 </body>
 </html>
