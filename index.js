@@ -3,41 +3,36 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
-const MAP_SIZE = 10000; // Harita tam 10000 [cite: 2026-01-27]
+const MAP_SIZE = 10000;
+let players = {};
 
 app.use(express.static(__dirname));
 
-function createWorld() {
-    let objects = [];
-    for(let i = 0; i < 2500; i++) {
-        let rx = Math.random() * MAP_SIZE;
-        let ry = Math.random() * MAP_SIZE;
-        let dist = Math.sqrt(Math.pow(rx - 5000, 2) + Math.pow(ry - 5000, 2));
-        
-        // Bölgeye göre eşyalar: 1500px elmas, 3800px altın, dışarısı demir (metal)
-        let tier = dist < 1500 ? "E" : (dist < 3800 ? "A" : "N");
-        let kind = Math.random() > 0.8 ? "JEN" : (Math.random() > 0.6 ? "KASA" : "PARA");
-
-        objects.push({ id: i, x: rx, y: ry, kind: kind, tier: tier });
-    }
-    return objects;
-}
-
-let worldObjects = createWorld();
-let players = {};
-
 io.on('connection', (socket) => {
     socket.on('join', (data) => {
-        players[socket.id] = { id: socket.id, x: 5000, y: 5000, name: data.name || "Osman", angle: 0 };
-        socket.emit('init', { objects: worldObjects, id: socket.id, mapSize: MAP_SIZE });
+        // 3 CAN VE VS MODU AYARLARI
+        players[socket.id] = { 
+            id: socket.id, x: 5000, y: 5000, 
+            name: data.name || "Osman", angle: 0, 
+            hp: 3, lastShoot: 0 
+        };
+        socket.emit('init', { id: socket.id, mapSize: MAP_SIZE });
     });
 
     socket.on('move', (data) => {
         if (players[socket.id]) {
-            // Duvar Kontrolü: 0-10000 dışına çıkamaz
-            players[socket.id].x = Math.max(0, Math.min(MAP_SIZE, data.x));
-            players[socket.id].y = Math.max(0, Math.min(MAP_SIZE, data.y));
+            players[socket.id].x = data.x;
+            players[socket.id].y = data.y;
             players[socket.id].angle = data.angle;
+        }
+    });
+
+    socket.on('shoot', () => {
+        const p = players[socket.id];
+        const now = Date.now();
+        if (p && now - p.lastShoot > 1000) { // 1 Saniye Cooldown
+            p.lastShoot = now;
+            io.emit('bullet', { owner: socket.id, x: p.x, y: p.y });
         }
     });
 
