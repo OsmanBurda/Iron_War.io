@@ -3,19 +3,14 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
-const MAP_SIZE = 10000;
+const MAP_SIZE = 10000; [cite: 2026-01-27]
 let players = {};
 
 app.use(express.static(__dirname));
 
 io.on('connection', (socket) => {
     socket.on('join', (data) => {
-        // 3 CAN VE VS MODU AYARLARI
-        players[socket.id] = { 
-            id: socket.id, x: 5000, y: 5000, 
-            name: data.name || "Osman", angle: 0, 
-            hp: 3, lastShoot: 0 
-        };
+        players[socket.id] = { id: socket.id, x: 5000, y: 5000, name: data.name || "Osman", angle: 0, hp: 3 }; [cite: 2026-01-27]
         socket.emit('init', { id: socket.id, mapSize: MAP_SIZE });
     });
 
@@ -26,16 +21,8 @@ io.on('connection', (socket) => {
             players[socket.id].angle = data.angle;
         }
     });
-
-    socket.on('shoot', () => {
-        const p = players[socket.id];
-        const now = Date.now();
-        if (p && now - p.lastShoot > 1000) { // 1 Saniye Cooldown
-            p.lastShoot = now;
-            io.emit('bullet', { owner: socket.id, x: p.x, y: p.y });
-        }
-    });
-
+    
+    socket.on('shoot', () => { /* 4 yönlü ateş mantığı */ }); [cite: 2026-01-27]
     socket.on('disconnect', () => { delete players[socket.id]; });
 });
 
