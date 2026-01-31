@@ -27,7 +27,6 @@ io.on('connection', (socket) => {
         players[socket.id] = { id: socket.id, x: 5000, y: 5000, name: data.name || "Osman", angle: 0 };
         socket.emit('init', { objects: worldObjects, id: socket.id, mapSize: MAP_SIZE });
     });
-
     socket.on('move', (data) => {
         if (players[socket.id]) {
             players[socket.id].x = data.x;
@@ -35,12 +34,10 @@ io.on('connection', (socket) => {
             players[socket.id].angle = data.angle;
         }
     });
-
     socket.on('disconnect', () => { delete players[socket.id]; });
 });
 
 setInterval(() => { io.emit('update', players); }, 20);
 
-// Render Port Ayarı
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => console.log("Server Hazır"));
+http.listen(PORT, () => console.log("Server dinleniyor..."));
