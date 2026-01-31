@@ -10,7 +10,10 @@ const ELMAS_RADIUS = 1500;
 const ALTIN_RADIUS = 3800;
 
 app.use(express.static(__dirname));
-app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 function createWorld() {
     let objects = [];
@@ -25,13 +28,20 @@ function createWorld() {
 
         const r = Math.random();
         let kind = r > 0.95 ? "JEN" : (r > 0.85 ? "KASA" : (r > 0.70 ? "DISLI" : "PARA"));
+
         objects.push({ id: i, x: rx, y: ry, kind: kind, tier: tier });
     }
     return objects;
 }
 
 let worldObjects = createWorld();
-io.on('connection', (socket) => { socket.emit('init', { objects: worldObjects }); });
+
+io.on('connection', (socket) => {
+    socket.emit('init', { objects: worldObjects });
+    socket.on('join', (name) => {
+        // İsim kaydetme vs buraya eklenebilir
+    });
+});
 
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => { console.log('Sunucu Osman için hazır!'); });
+http.listen(PORT, () => { console.log('Sunucu Hazır!'); });
