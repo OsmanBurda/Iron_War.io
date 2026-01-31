@@ -2,20 +2,44 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron War IO - Osman</title>
+    <title>Iron War IO</title>
     <style>
-        body { margin: 0; background: #1a1a1a; overflow: hidden; touch-action: none; }
+        body { margin: 0; background: #1a1a1a; overflow: hidden; touch-action: none; font-family: Arial, sans-serif; }
         canvas { display: block; }
+        
+        /* GİRİŞ EKRANI TASARIMI */
+        #loginPanel {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 10;
+        }
+        #loginPanel input { padding: 15px; font-size: 20px; border-radius: 5px; border: none; margin-bottom: 20px; width: 300px; text-align: center; }
+        #loginPanel button { padding: 15px 40px; font-size: 24px; background: #d32f2f; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #loginPanel h1 { color: white; font-size: 50px; margin-bottom: 10px; text-shadow: 0 0 10px red; }
     </style>
 </head>
 <body>
+
+<div id="loginPanel">
+    <h1>IRON WAR IO</h1>
+    <input type="text" id="username" placeholder="Adını Yaz..." maxlength="15">
+    <button onclick="startGame()">SAVAŞA BAŞLA</button>
+</div>
+
 <canvas id="gameCanvas"></canvas>
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io();
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    const loginPanel = document.getElementById('loginPanel');
 
+    let gameRunning = false;
+    let myName = "Misafir";
+    let myPos = { x: 5000, y: 5000 };
+    let angle = 0; // Karakterin baktığı yön
+
+    // RESİMLER (NORMAL EŞYALAR İÇİN AKILLI ÇÖZÜM)
     const images = {
         E: {
             para: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTbV8GQtIgmRxDnqXA5kHPhYBHFeLwV72jxHS0pNPV1w&s=10",
@@ -31,49 +55,145 @@
         },
         N: {
             jen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS2uR5SNOE4TEVlF0BPNz770a_hsLs1wMhi2Q_eVT5l8g&s=10"
+            // Diğerleri için altın resimlerini gri yapıp kullanacağız!
         }
     };
 
     const loadedImgs = {};
-    for(let t in images) {
-        loadedImgs[t] = {};
-        for(let k in images[t]) {
-            let img = new Image();
-            img.src = images[t][k];
-            loadedImgs[t][k] = img;
+    // Resim yükleme fonksiyonu
+    function loadAllImages() {
+        for(let t in images) {
+            loadedImgs[t] = {};
+            for(let k in images[t]) {
+                let img = new Image();
+                img.src = images[t][k];
+                loadedImgs[t][k] = img;
+            }
         }
     }
+    loadAllImages();
 
     let worldObjects = [];
-    let myPos = { x: 5000, y: 5000 };
 
-    socket.on('init', (data) => { worldObjects = data.objects; });
+    socket.on('init', (data) => { 
+        worldObjects = data.objects; 
+    });
+
+    function startGame() {
+        const inputName = document.getElementById('username').value;
+        if(inputName.trim() !== "") myName = inputName;
+        loginPanel.style.display = 'none';
+        gameRunning = true;
+        draw();
+    }
 
     function draw() {
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        if(!gameRunning) return;
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
         const camX = myPos.x - canvas.width / 2;
         const camY = myPos.y - canvas.height / 2;
 
+        // --- 1. EŞYALARI ÇİZ ---
         worldObjects.forEach(obj => {
-            let img = (loadedImgs[obj.tier] && loadedImgs[obj.tier][obj.kind.toLowerCase()]);
+            if (obj.x < camX - 100 || obj.x > camX + canvas.width + 100 ||
+                obj.y < camY - 100 || obj.y > camY + canvas.height + 100) return;
+
             ctx.save();
+            let img;
+            let filter = "none";
+
+            // Normal Eşya Mantığı: Eğer resmi yoksa Altın resmini al ve GRİ yap (Demir gibi görünür)
+            if (obj.tier === "N" && obj.kind !== "JEN") {
+                img = loadedImgs["A"][obj.kind.toLowerCase()];
+                filter = "grayscale(100%) brightness(0.7)"; // Demir Efekti!
+            } else {
+                img = loadedImgs[obj.tier] && loadedImgs[obj.tier][obj.kind.toLowerCase()];
+            }
+
             if (img && img.complete) {
+                if (filter !== "none") ctx.filter = filter;
                 ctx.drawImage(img, obj.x - camX, obj.y - camY, 80, 80);
             } else {
-                ctx.fillStyle = obj.tier === "E" ? "#00ffff" : (obj.tier === "A" ? "#ffd700" : "#888");
+                // Yüklenmezse yedek renkler
+                ctx.fillStyle = obj.tier === "E" ? "cyan" : (obj.tier === "A" ? "gold" : "#555");
                 ctx.fillRect(obj.x - camX, obj.y - camY, 40, 40);
             }
             ctx.restore();
         });
+
+        // --- 2. KENDİMİZİ (OYUNCUYU) ÇİZ ---
+        drawPlayer(canvas.width/2, canvas.height/2, myName);
+
+        // --- 3. HARİTA (RADAR) ÇİZ ---
+        drawMinimap();
+
         requestAnimationFrame(draw);
     }
-    draw();
 
-    // HAREKET KONTROLLERİ (JOYSTICK SİSTEMİ GERİ GELDİ)
+    function drawPlayer(x, y, name) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+
+        // Gövde
+        ctx.fillStyle = "#333";
+        ctx.beginPath();
+        ctx.arc(0, 0, 25, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Testere (Dönen efekt)
+        let time = Date.now() / 100;
+        ctx.save();
+        ctx.rotate(time); 
+        ctx.fillStyle = "#888"; // Testere rengi
+        for(let i=0; i<8; i++) {
+            ctx.rotate(Math.PI/4);
+            ctx.fillRect(28, -5, 10, 10); // Dişler
+        }
+        ctx.restore();
+
+        ctx.restore();
+
+        // İsim
+        ctx.fillStyle = "white";
+        ctx.font = "bold 16px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(name, x, y - 40);
+    }
+
+    function drawMinimap() {
+        const size = 120;
+        const padding = 20;
+        const mapX = canvas.width - size - padding;
+        const mapY = padding;
+        const scale = size / 10000; // 10000 harita boyutu
+
+        // Arkaplan
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.fillRect(mapX, mapY, size, size);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.strokeRect(mapX, mapY, size, size);
+
+        // Biz (Nokta)
+        ctx.fillStyle = "lime";
+        ctx.beginPath();
+        ctx.arc(mapX + myPos.x * scale, mapY + myPos.y * scale, 3, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // --- KONTROLLER ---
     const handleMove = (clientX, clientY) => {
+        if(!gameRunning) return;
         const dx = clientX - canvas.width / 2;
         const dy = clientY - canvas.height / 2;
+        angle = Math.atan2(dy, dx);
         myPos.x += dx * 0.05;
         myPos.y += dy * 0.05;
     };
@@ -83,6 +203,7 @@
         handleMove(e.touches[0].clientX, e.touches[0].clientY);
         e.preventDefault();
     }, { passive: false });
+
 </script>
 </body>
 </html>
