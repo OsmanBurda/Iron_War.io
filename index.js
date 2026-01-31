@@ -4,20 +4,19 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const path = require('path');
 
-// --- OSMAN'IN HARİTA AYARLARI ---
+// --- HARİTA AYARLARI ---
 const MAP_SIZE = 10000;
 const CENTER = 5000;
-const ELMAS_RADIUS = 1500; 
-const ALTIN_RADIUS = 3800;
+const ELMAS_RADIUS = 1500; // E Bölgesi (Merkez)
+const ALTIN_RADIUS = 3800; // A Bölgesi (Orta)
 
-// Statik dosyaların (HTML) nerede olduğunu sunucuya gösteriyoruz
 app.use(express.static(path.join(__dirname, '/')));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Objeleri oluştururken hangi bölgedeyse sadece o tipi (Tier) veriyoruz
+// Objeleri bölgelere göre kesin olarak ayırıyoruz
 function createWorld() {
     let objects = [];
     for(let i = 0; i < 3000; i++) {
@@ -26,9 +25,9 @@ function createWorld() {
         let dist = Math.sqrt(Math.pow(rx - CENTER, 2) + Math.pow(ry - CENTER, 2));
         
         let tier;
-        if (dist < ELMAS_RADIUS) tier = "E";      // Sadece Elmas
-        else if (dist < ALTIN_RADIUS) tier = "A"; // Sadece Altın
-        else tier = "N";                          // Sadece Normal
+        if (dist < ELMAS_RADIUS) tier = "E";      // SADECE ELMAS
+        else if (dist < ALTIN_RADIUS) tier = "A"; // SADECE ALTIN
+        else tier = "N";                          // SADECE NORMAL
 
         const r = Math.random();
         let kind = "PARA";
@@ -45,10 +44,9 @@ let worldObjects = createWorld();
 
 io.on('connection', (socket) => {
     socket.emit('init', { objects: worldObjects });
-    console.log('Osman, oyuncu bağlandı!');
 });
 
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => {
-    console.log('Sunucu aktif, port: ' + PORT);
+    console.log('Sunucu calisiyor: ' + PORT);
 });
